@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: maven-docker-pipeline
+  namespace: infra
+spec:
+  description: |
+    This pipeline checkout a Git repository, builds a Docker image from it, and pushes the built image to a container registry.
+  params:
+  - name: repo-url
+    type: string
+  workspaces:
+  - name: source
+  tasks:
+  - name: clone
+    taskRef:
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: source
+    params:
+    - name: url
+      value: $(params.repo-url)
