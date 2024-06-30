@@ -9,8 +9,15 @@ spec:
   params:
   - name: repo-url
     type: string
+  - name: context-dir
+    type: string
+    default: '.'
+    description: >-
+      The directory from which to launch the Maven build
   workspaces:
   - name: source
+  - name: maven-settings
+  - name: maven-local-repo
   tasks:
   - name: clone
     taskRef:
@@ -21,3 +28,24 @@ spec:
     params:
     - name: url
       value: $(params.repo-url)
+  - name: package
+    runAfter:
+      - clone
+    taskRef:
+      kind: Task
+      name: maven
+    workspaces:
+      - name: maven-settings
+        workspace: maven-settings
+      - name: source
+        workspace: source
+      - name: maven-local-repo
+        workspace: maven-local-repo
+    params:
+    - name: GOALS
+      value:
+        - '-pl'
+        - $(params.context-dir)
+        - '-B'
+        - clean
+        - package
