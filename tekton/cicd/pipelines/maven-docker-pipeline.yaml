@@ -21,28 +21,21 @@ spec:
   - name: maven-local-repo
   - name: docker-config
   tasks:
-  - name: clone
+  - name: fetch-source
     taskRef:
       name: git-clone
-    workspaces:
-    - name: output
-      workspace: source
     params:
     - name: url
       value: $(params.repo-url)
-  - name: package
+    workspaces:
+    - name: output
+      workspace: source
+  - name: build-source
     runAfter:
-      - clone
+      - fetch-source
     taskRef:
       kind: Task
       name: maven
-    workspaces:
-      - name: maven-settings
-        workspace: maven-settings
-      - name: source
-        workspace: source
-      - name: maven-local-repo
-        workspace: maven-local-repo
     params:
     - name: GOALS
       value:
@@ -51,16 +44,18 @@ spec:
         - '-B'
         - clean
         - package
-  - name: docker-build
-    runAfter:
-      - package
-    taskRef:
-      name: kaniko
     workspaces:
+      - name: maven-settings
+        workspace: maven-settings
       - name: source
         workspace: source
-      - name: dockerconfig
-        workspace: docker-config
+      - name: maven-local-repo
+        workspace: maven-local-repo
+  - name: build-image
+    runAfter:
+      - build-source
+    taskRef:
+      name: kaniko
     params:
       - name: CONTEXT
         value: $(params.context-dir)
@@ -70,3 +65,8 @@ spec:
       #   value: "$(params.storageDriver)"
       - name: TLSVERIFY
         value: 'false'
+    workspaces:
+      - name: source
+        workspace: source
+      - name: dockerconfig
+        workspace: docker-config
