@@ -14,10 +14,12 @@ spec:
     default: '.'
     description: >-
       The directory from which to launch the Maven build
+  - name: image-name
   workspaces:
   - name: source
   - name: maven-settings
   - name: maven-local-repo
+  - name: docker-config
   tasks:
   - name: clone
     taskRef:
@@ -49,3 +51,22 @@ spec:
         - '-B'
         - clean
         - package
+  - name: docker-build
+    runAfter:
+      - package
+    taskRef:
+      name: kaniko
+    workspaces:
+      - name: source
+        workspace: source
+      - name: dockerconfig
+        workspace: docker-config
+    params:
+      - name: CONTEXT
+        value: $(params.context-dir)
+      - name: IMAGE
+        value: $(params.image-name)
+      # - name: STORAGE_DRIVER
+      #   value: "$(params.storageDriver)"
+      - name: TLSVERIFY
+        value: 'false'
