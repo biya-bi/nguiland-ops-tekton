@@ -11,7 +11,7 @@ spec:
     type: string
   - name: context-dir
     type: string
-    default: '.'
+    default: "."
     description: >-
       The directory from which to launch the Maven build
   - name: image-name
