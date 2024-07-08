@@ -14,7 +14,12 @@ spec:
     default: "."
     description: >-
       The directory from which to launch the Maven build
-  - name: image-name
+  - name: image-registry-cluster-host
+    default: artifactory-jcr.infra.svc.cluster.local:17072
+  - name: image-registry-ingress-host
+    default: artifactory-jcr.infra:30444
+  - name: image-registry-repo
+    default: docker-local
   - name: image-tag
   - name: helm-repo-url
     type: string
@@ -38,9 +43,16 @@ spec:
     workspaces:
     - name: output
       workspace: maven-source
+  - name: get-maven-repo-name
+    taskRef:
+      name: git-repo-name
+    params:
+    - name: url
+      value: $(params.maven-repo-url)
   - name: build-maven-source
     runAfter:
       - fetch-maven-source
+      - get-maven-repo-name
     taskRef:
       kind: Task
       name: maven
@@ -68,7 +80,7 @@ spec:
       - name: CONTEXT
         value: $(params.context-dir)
       - name: IMAGE
-        value: $(params.image-name)
+        value: $(params.image-registry-cluster-host)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name):$(params.image-tag)
       # - name: STORAGE_DRIVER
       #   value: "$(params.storageDriver)"
     workspaces:
@@ -99,11 +111,7 @@ spec:
     params:
     - name: SCRIPT
       value: |
-        maven_repo_url=$(params.maven-repo-url)
-        maven_repo_name=${maven_repo_url##*/}
-        maven_repo_name=${maven_repo_name%.*}
-
-        image_repo=artifactory-jcr.infra:30444/docker-local/"${maven_repo_name}"
+        image_repo=$(params.image-registry-ingress-host)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
         image_tag=$(params.image-tag)@$(tasks.build-image.results.IMAGE_DIGEST)
 
         # Without a temporary file, the in-place edit (yq -i) leads to a permission denied
