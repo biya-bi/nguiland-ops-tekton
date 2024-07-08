@@ -26,6 +26,12 @@ spec:
   - name: helm-repo-revision
     type: string
     default: "main"
+  - name: helm-chart-dir
+    default: "."
+  - name: helm-chart-release-version
+    default: "v1.0.0"
+  - name: helm-chart-release-namespace
+    default: ""
   workspaces:
   - name: maven-source
   - name: maven-settings
@@ -147,3 +153,20 @@ spec:
       workspace: helm-source
     - name: ssh-directory
       workspace: ssh-directory
+  - name: deploy-helm-chart
+    runAfter:
+      - push-helm-changes
+    taskRef:
+      name: helm-upgrade-from-source
+    params:
+    - name: charts_dir
+      value: $(params.helm-chart-dir)
+    - name: release_version
+      value: $(params.helm-chart-release-version)
+    - name: release_name
+      value: $(tasks.get-maven-repo-name.results.repo-name)
+    - name: release_namespace
+      value: $(params.helm-chart-release-namespace)
+    workspaces:
+    - name: source
+      workspace: helm-source
