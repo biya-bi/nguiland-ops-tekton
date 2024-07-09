@@ -15,9 +15,9 @@ spec:
     description: >-
       The directory from which to launch the Maven build
   - name: image-registry-cluster-host
-    default: artifactory-jcr.infra.svc.cluster.local:17072
+    default: artifactory-jcr.infra.svc.cluster.local:8082
   - name: image-registry-ingress-host
-    default: artifactory-jcr.infra:30444
+    default: artifactory-jcr.infra:30000
   - name: image-registry-repo
     default: docker-local
   - name: image-tag
