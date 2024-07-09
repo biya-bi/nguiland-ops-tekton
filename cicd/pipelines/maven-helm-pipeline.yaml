@@ -1,15 +1,23 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: maven-docker-pipeline
+  name: maven-helm-pipeline
   namespace: infra
 spec:
   description: |
-    This pipeline checkout a Git repository, builds a Docker image from it, and pushes the built image to a container registry.
+    This pipeline does the following:
+      - Checks out a Git repository containing a Maven project.
+      - Builds the Maven project.
+      - Builds a Docker image from the Maven project.
+      - Pushes the built Docker image to an image registry.
+      - Checkouts out a Git repository containing a Helm chart for the project.
+      - Updates the image repository and tag to match the just built Docker image.
+      - Commits and pushes the changes done on the Helm chart.
+      - Deploys the Helm chart to the Kubernetes cluster.
   params:
   - name: maven-repo-url
     type: string
-  - name: context-dir
+  - name: maven-context-dir
     type: string
     default: "."
     description: >-
@@ -21,9 +29,9 @@ spec:
   - name: image-registry-repo
     default: docker-local
   - name: image-tag
-  - name: helm-repo-url
+  - name: helm-chart-repo-url
     type: string
-  - name: helm-repo-revision
+  - name: helm-chart-repo-revision
     type: string
     default: "main"
   - name: helm-chart-dir
@@ -66,7 +74,7 @@ spec:
     - name: GOALS
       value:
         - '-pl'
-        - $(params.context-dir)
+        - $(params.maven-context-dir)
         - '-B'
         - clean
         - package
@@ -77,14 +85,14 @@ spec:
         workspace: maven-source
       - name: maven-local-repo
         workspace: maven-local-repo
-  - name: build-image
+  - name: build-docker-image
     runAfter:
       - build-maven-source
     taskRef:
       name: kaniko
     params:
       - name: CONTEXT
-        value: $(params.context-dir)
+        value: $(params.maven-context-dir)
       - name: IMAGE
         value: $(params.image-registry-cluster-host)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name):$(params.image-tag)
       # - name: STORAGE_DRIVER
@@ -96,20 +104,20 @@ spec:
         workspace: docker-config
   - name: fetch-helm-source
     runAfter:
-      - build-image
+      - build-docker-image
     taskRef:
       name: git-clone
     params:
     - name: url
-      value: $(params.helm-repo-url)
+      value: $(params.helm-chart-repo-url)
     - name: revision
-      value: $(params.helm-repo-revision)
+      value: $(params.helm-chart-repo-revision)
     workspaces:
     - name: output
       workspace: helm-source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: update-helm-image
+  - name: update-helm-chart-image
     runAfter:
       - fetch-helm-source
     taskRef:
@@ -118,7 +126,7 @@ spec:
     - name: SCRIPT
       value: |
         image_repo=$(params.image-registry-ingress-host)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
-        image_tag=$(params.image-tag)@$(tasks.build-image.results.IMAGE_DIGEST)
+        image_tag=$(params.image-tag)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
 
         # Without a temporary file, the in-place edit (yq -i) leads to a permission denied
         temp_dir=`mktemp -d`
@@ -132,9 +140,9 @@ spec:
     workspaces:
     - name: source
       workspace: helm-source
-  - name: push-helm-changes
+  - name: push-helm-chart-changes
     runAfter:
-      - update-helm-image
+      - update-helm-chart-image
     taskRef:
       name: git-cli
     params:
@@ -147,7 +155,7 @@ spec:
         git config --global --add safe.directory $(workspaces.source.path)
         git add values.yaml
         git commit -m "Update image reference"
-        git push origin HEAD:$(params.helm-repo-revision)
+        git push origin HEAD:$(params.helm-chart-repo-revision)
     workspaces:
     - name: source
       workspace: helm-source
@@ -155,7 +163,7 @@ spec:
       workspace: ssh-directory
   - name: deploy-helm-chart
     runAfter:
-      - push-helm-changes
+      - push-helm-chart-changes
     taskRef:
       name: helm-upgrade-from-source
     params:
