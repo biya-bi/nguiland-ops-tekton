@@ -17,6 +17,9 @@ spec:
   params:
   - name: maven-repo-url
     type: string
+  - name: maven-repo-revision
+    type: string
+    default: "main"
   - name: maven-context-dir
     type: string
     default: "."
@@ -54,6 +57,8 @@ spec:
     params:
     - name: url
       value: $(params.maven-repo-url)
+    - name: revision
+      value: $(params.maven-repo-revision)
     workspaces:
     - name: output
       workspace: maven-source
