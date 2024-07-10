@@ -25,9 +25,9 @@ spec:
     default: "."
     description: >-
       The directory from which to launch the Maven build
-  - name: image-registry-cluster-host
+  - name: image-registry-cluster-socket
     default: artifactory-jcr.infra.svc.cluster.local:8082
-  - name: image-registry-ingress-host
+  - name: image-registry-ingress-socket
     default: artifactory-jcr.infra:30000
   - name: image-registry-repo
     default: docker-local
@@ -99,7 +99,7 @@ spec:
       - name: CONTEXT
         value: $(params.maven-context-dir)
       - name: IMAGE
-        value: $(params.image-registry-cluster-host)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name):$(params.image-tag)
+        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name):$(params.image-tag)
       # - name: STORAGE_DRIVER
       #   value: "$(params.storageDriver)"
     workspaces:
@@ -122,7 +122,7 @@ spec:
       workspace: helm-source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: update-helm-chart-image
+  - name: update-helm-chart
     runAfter:
       - fetch-helm-source
     taskRef:
@@ -130,7 +130,7 @@ spec:
     params:
     - name: SCRIPT
       value: |
-        image_repo=$(params.image-registry-ingress-host)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
+        image_repo=$(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
         image_tag=$(params.image-tag)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
 
         # Without a temporary file, the in-place edit (yq -i) leads to a permission denied
@@ -145,9 +145,9 @@ spec:
     workspaces:
     - name: source
       workspace: helm-source
-  - name: push-helm-chart-changes
+  - name: push-helm-chart
     runAfter:
-      - update-helm-chart-image
+      - update-helm-chart
     taskRef:
       name: git-cli
     params:
@@ -168,7 +168,7 @@ spec:
       workspace: ssh-directory
   - name: deploy-helm-chart
     runAfter:
-      - push-helm-chart-changes
+      - push-helm-chart
     taskRef:
       name: helm-upgrade-from-source
     params:
