@@ -62,6 +62,8 @@ spec:
     workspaces:
     - name: output
       workspace: maven-source
+    - name: ssh-directory
+      workspace: ssh-directory
   - name: get-maven-repo-name
     taskRef:
       name: git-repo-name
