@@ -1,0 +1,15 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: maven-helm
+  namespace: infra
+spec: 
+  params:
+  - name: namespace
+    value: $(body.involvedObject.namespace)
+  - name: repository
+    value: $(body.involvedObject.name)
+  - name: maven-context-dir
+    value: springboot
+  - name: helm-chart-repo-url
+    value: git@github.com:biya-bi/tekton-tutorial-greeter-chart.git

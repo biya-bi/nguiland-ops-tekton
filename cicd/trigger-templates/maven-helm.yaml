@@ -1,0 +1,75 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: maven-helm
+  namespace: infra
+spec:
+  params:
+  - name: namespace
+  - name: repository
+  - name: image-tag
+    default: "1.0"
+  - name: helm-chart-repo-url
+  - name: maven-context-dir
+    default: "."
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: maven-helm-run-
+      namespace: infra
+    spec:
+      pipelineRef:
+        name: maven-helm
+      podTemplate:
+        securityContext:
+          fsGroup: 65532
+      serviceAccountName: tekton-pipeline
+      workspaces:
+      - name: maven-source
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 100Mi
+      - name: maven-settings
+        secret:
+          secretName: maven-settings
+      - name: maven-local-repo
+        persistentVolumeClaim:
+          claimName: maven-local-repo
+      - name: maven-flux-manifests
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Mi
+      - name: docker-config
+        secret:
+          secretName: docker-config
+      - name: helm-source
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 100Mi
+      - name: ssh-directory
+        secret:
+          secretName: git-ssh
+      params:
+      - name: maven-flux-gitrepo-namespace
+        value: $(tt.params.namespace)
+      - name: maven-flux-gitrepo-name
+        value: $(tt.params.repository)
+      - name: image-tag
+        value: $(tt.params.image-tag)
+      - name: helm-chart-repo-url
+        value: $(tt.params.helm-chart-repo-url)
+      - name: maven-context-dir
+        value: $(tt.params.maven-context-dir)

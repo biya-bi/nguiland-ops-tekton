@@ -1,0 +1,13 @@
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: maven-helm
+  namespace: infra
+spec:
+  providerRef:
+    name: maven-helm
+  eventSeverity: info
+  eventSources:
+    - kind: GitRepository
+      name: tekton-tutorial-greeter
+      namespace: flux-system
