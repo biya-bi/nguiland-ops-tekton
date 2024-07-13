@@ -1,0 +1,48 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-flux-parsing
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "Git Flux Parsing"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will either return the passed in Git repository URL and revision or retrieve them from the specified manifest file in the specified workspace.
+
+  params:
+    - name: url
+      default: ""
+    - name: revision
+      default: ""
+    - name: manifest-file
+      default: ""
+    - name: image
+      default: docker.io/mikefarah/yq:4.44.2
+  workspaces:
+    - name: manifest-dir
+  results:
+    - name: url
+    - name: revision
+  steps:
+    - name: parse
+      image: $(params.image)
+      workingDir: $(workspaces.manifest-dir.path)
+      script: |
+        url=$(echo $(params.url) | xargs)
+        revision=$(echo $(params.revision) | xargs)
+        manifest_file=$(echo $(params.manifest-file) | xargs)
+
+        if [ -z "${url}" ]; then
+          url=$(cat "${manifest_file}" | yq .spec.url)
+          revision=$(cat "${manifest_file}" | yq .spec.ref.branch)
+        fi
+
+        printf "%s" "${url}" > $(results.url.path)
+        printf "%s" "${revision}" > $(results.revision.path)
+

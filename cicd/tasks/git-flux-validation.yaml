@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-flux-validation
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "Git Flux Validation"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will validate that either the Git repository URL or the repository Flux details are supplied.
+
+  params:
+    - name: url
+    - name: flux-gitrepo-namespace
+    - name: flux-gitrepo-name
+    - name: image
+      default: docker.io/alpine:3.20.1
+  steps:
+    - name: validate
+      image: $(params.image)
+      script: |
+        url=$(params.url)
+        namespace=$(params.flux-gitrepo-namespace)
+        repo_name=$(params.flux-gitrepo-name)
+
+        if [ -z "${url}" ] && ( [ -z "${namespace}" ] ||  [ -z "${repo_name}" ] ); then
+            printf "Either the repository URL is specified, or the Flux namespace and repostiory name is specified!\n"
+            exit 1
+        fi

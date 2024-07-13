@@ -17,9 +17,18 @@ spec:
   params:
   - name: maven-repo-url
     type: string
+    default: ""
   - name: maven-repo-revision
     type: string
     default: "main"
+  - name: maven-flux-gitrepo-namespace
+    type: string
+    default: ""
+    description: The namespace containing the Flux Git repository representing the Maven project.
+  - name: maven-flux-gitrepo-name
+    type: string
+    default: ""
+    description: The name of the Flux Git repository representing the Maven project.
   - name: maven-context-dir
     type: string
     default: "."
@@ -47,18 +56,65 @@ spec:
   - name: maven-source
   - name: maven-settings
   - name: maven-local-repo
+  - name: maven-flux-manifests
   - name: docker-config
   - name: helm-source
   - name: ssh-directory
   tasks:
-  - name: fetch-maven-source
+  - name: validate-maven-flux
     taskRef:
-      name: git-clone
+      name: git-flux-validation
+    params:
+    - name: url
+      value: $(params.maven-repo-url)
+    - name: flux-gitrepo-namespace
+      value: $(params.maven-flux-gitrepo-namespace)
+    - name: flux-gitrepo-name
+      value: $(params.maven-flux-gitrepo-name)
+  - name: get-maven-flux-gitrepo
+    runAfter:
+      - validate-maven-flux
+    taskRef:
+      name: kubernetes-actions
+    params:
+    - name: script
+      value: |
+        repository_name=$(params.maven-flux-gitrepo-name)
+        namespace=$(params.maven-flux-gitrepo-namespace)
+
+        kubectl get gitrepository "${repository_name}" -n "${namespace}" -o yaml > gitrepo.yaml
+    workspaces:
+    - name: manifest-dir
+      workspace: maven-flux-manifests
+    when:
+    - input: $(params.maven-repo-url)
+      operator: in
+      values: [""]
+  - name: parse-maven-flux
+    runAfter:
+      - get-maven-flux-gitrepo
+    taskRef:
+      name: git-flux-parsing
     params:
     - name: url
       value: $(params.maven-repo-url)
     - name: revision
       value: $(params.maven-repo-revision)
+    - name: manifest-file
+      value: gitrepo.yaml
+    workspaces:
+    - name: manifest-dir
+      workspace: maven-flux-manifests
+  - name: fetch-maven-source
+    runAfter:
+      - parse-maven-flux
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(tasks.parse-maven-flux.results.url)
+    - name: revision
+      value: $(tasks.parse-maven-flux.results.revision)
     workspaces:
     - name: output
       workspace: maven-source
@@ -69,7 +125,7 @@ spec:
       name: git-repo-name
     params:
     - name: url
-      value: $(params.maven-repo-url)
+      value: $(tasks.parse-maven-flux.results.url)
   - name: build-maven-source
     runAfter:
       - fetch-maven-source
