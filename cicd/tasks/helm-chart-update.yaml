@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: helm-chart-update
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Developer Tools
+    tekton.dev/tags: yq
+    tekton.dev/displayName: "YQ"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will update the values used in the specified Helm chart. In particular, the image repository and tag will be updated.
+
+  params:
+    - name: repository
+    - name: tag
+    - name: chart-dir
+      default: "."
+    - name: image
+      default: linuxserver/yq:3.4.3
+  workspaces:
+    - name: source
+  steps:
+    - name: update
+      image: $(params.image)
+      workingDir: $(workspaces.source.path)/$(params.chart-dir)
+      script: |
+        repository=$(params.repository)
+        tag=$(params.tag)
+
+        yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' values.yaml
+
+

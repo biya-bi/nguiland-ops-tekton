@@ -46,8 +46,6 @@ spec:
   - name: helm-chart-repo-revision
     type: string
     default: "main"
-  - name: helm-chart-dir
-    default: "."
   - name: helm-chart-release-version
     default: "0.1.0"
   - name: helm-chart-release-namespace
@@ -184,22 +182,14 @@ spec:
     runAfter:
       - fetch-helm-source
     taskRef:
-      name: yq
+      name: helm-chart-update
     params:
-    - name: SCRIPT
-      value: |
-        image_repo=$(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
-        image_tag=$(params.image-tag)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
-
-        # Without a temporary file, the in-place edit (yq -i) leads to a permission denied
-        temp_dir=`mktemp -d`
-        values_yaml="${temp_dir}"/values.yaml
-
-        cp values.yaml "${values_yaml}"
-        yq -i '.image.repository = "'"${image_repo}"'", .image.tag = "'"${image_tag}"'"' "${values_yaml}"
-
-        mv "${values_yaml}" values.yaml
-        rmdir "${temp_dir}"
+    - name: repository
+      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
+    - name: tag
+      value: $(params.image-tag)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
+    - name: chart-dir
+      value: $(tasks.get-maven-repo-name.results.repo-name)
     workspaces:
     - name: source
       workspace: helm-source
@@ -216,7 +206,7 @@ spec:
     - name: GIT_SCRIPT
       value: |
         git config --global --add safe.directory $(workspaces.source.path)
-        git add values.yaml
+        git add $(tasks.get-maven-repo-name.results.repo-name)/values.yaml
         git commit -m "Update image reference"
         git push origin HEAD:$(params.helm-chart-repo-revision)
     workspaces:
@@ -231,7 +221,7 @@ spec:
       name: helm-upgrade-from-source
     params:
     - name: charts_dir
-      value: $(params.helm-chart-dir)
+      value: $(tasks.get-maven-repo-name.results.repo-name)
     - name: release_version
       value: $(params.helm-chart-release-version)
     - name: release_name
