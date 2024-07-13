@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: maven-helm-pipeline
+  name: maven-helm
   namespace: infra
 spec:
   description: |
