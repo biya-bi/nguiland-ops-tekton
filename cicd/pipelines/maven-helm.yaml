@@ -193,9 +193,25 @@ spec:
     workspaces:
     - name: source
       workspace: helm-source
-  - name: push-helm-chart
+  - name: get-helm-chart-commit-message
     runAfter:
       - update-helm-chart
+    taskRef:
+      name: image-commit-message
+    params:
+    - name: previous-repository
+      value: $(tasks.update-helm-chart.results.previous-repository)
+    - name: previous-tag
+      value: $(tasks.update-helm-chart.results.previous-tag)
+    - name: current-repository
+      value: $(tasks.update-helm-chart.results.current-repository)
+    - name: current-tag
+      value: $(tasks.update-helm-chart.results.current-tag)
+    - name: component-name
+      value: $(tasks.get-maven-repo-name.results.repo-name)
+  - name: push-helm-chart
+    runAfter:
+      - get-helm-chart-commit-message
     taskRef:
       name: git-cli
     params:
@@ -207,7 +223,7 @@ spec:
       value: |
         git config --global --add safe.directory $(workspaces.source.path)
         git add $(tasks.get-maven-repo-name.results.repo-name)/values.yaml
-        git commit -m "Update image reference"
+        git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
         git push origin HEAD:$(params.helm-chart-repo-revision)
     workspaces:
     - name: source

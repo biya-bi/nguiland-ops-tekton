@@ -1,0 +1,99 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: image-commit-message
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Developer Tools
+    tekton.dev/tags: yq
+    tekton.dev/displayName: "YQ"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task returns a commit message based on image repository and tag changes
+
+  params:
+    - name: previous-repository
+      default: ""
+    - name: previous-tag
+      default: ""
+    - name: current-repository
+    - name: current-tag
+      default: ""
+    - name: component-name
+    - name: build-image
+      default: docker.io/alpine:3.20.1
+  results:
+    - name: message
+  steps:
+    - name: get-message
+      image: $(params.build-image)
+      script: |
+        get_title() {
+          local previous_repository="$1"
+          local previous_tag="$2"
+          local current_repository="$3"
+          local current_tag="$4"
+          local component_name="$5"
+
+          local title=""
+          if [ "${previous_repository}" != "${current_repository}" ] && [ "${previous_tag}" != "${current_tag}" ]; then
+            title="Update repository and tag"
+          elif [ "${previous_tag}" != "${current_tag}" ]; then
+            title="Update tag"
+          elif [ "${previous_repository}" != "${current_repository}" ]; then
+            title="Update repository"
+          fi
+          
+          if [ -n "${title}" ]; then
+            printf "%s: %s" "${component_name}" "${title}"
+          fi
+        }
+
+        get_description() {
+          local previous_repository="$1"
+          local previous_tag="$2"
+          local current_repository="$3"
+          local current_tag="$4"
+
+          local description=""
+          if [ "${previous_repository}" != "${current_repository}" ]; then
+              description=$(printf "Previous repository: %s\nCurrent repository: %s" "${previous_repository}" "${current_repository}")
+          fi
+
+          local line_separator=""
+          if [ -n "${description}" ]; then
+              line_separator="\n"
+          fi
+
+          if [ "${previous_tag}" != "${current_tag}" ]; then
+              description=$(printf "%s%sPrevious tag: %s\nCurrent tag: %s" "${description}" "${line_separator}" "${previous_tag}" "${current_tag}")
+          fi
+
+          printf "${description}"
+        }
+
+        get_message() {
+          local title=$(get_title "$@")
+          local description=$(get_description "$@")
+
+          local message="${title}"
+          if [ -n "${description}" ]; then
+              message=$(printf "%s\n\n%s" "${message}" "${description}")
+          fi
+
+          printf "${message}"
+        }
+
+        previous_repository=$(params.previous-repository)
+        current_repository=$(params.current-repository)
+        previous_tag=$(params.previous-tag)
+        current_tag=$(params.current-tag)
+        component_name=$(params.component-name)
+
+        message=$(get_message "${previous_repository}" "${previous_tag}" "${current_repository}" "${current_tag}" "${component_name}")
+
+        printf "${message}" > $(results.message.path)

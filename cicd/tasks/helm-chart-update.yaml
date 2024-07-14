@@ -24,6 +24,11 @@ spec:
       default: linuxserver/yq:3.4.3
   workspaces:
     - name: source
+  results:
+    - name: previous-repository
+    - name: previous-tag
+    - name: current-repository
+    - name: current-tag
   steps:
     - name: update
       image: $(params.image)
@@ -32,6 +37,13 @@ spec:
         repository=$(params.repository)
         tag=$(params.tag)
 
+        previous_repository=$(yq .image.repository values.yaml)
+        previous_tag=$(yq .image.tag values.yaml)
+
         yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' values.yaml
 
+        printf "${previous_repository}" | tr -d \" > $(results.previous-repository.path)
+        printf "${previous_tag}" | tr -d \" > $(results.previous-tag.path)
 
+        printf "${repository}" | tr -d \" > $(results.current-repository.path)
+        printf "${tag}" | tr -d \" > $(results.current-tag.path)
