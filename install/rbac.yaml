@@ -5,43 +5,6 @@ metadata:
   namespace: infra
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: tekton-pipeline
-  namespace: infra
-rules:
-  - apiGroups:
-      - ""
-      - "apps"
-    resources:
-      - deployments
-      - services
-      - secrets
-      - serviceaccounts
-      - replicasets
-    verbs:
-      - get
-      - create
-      - update
-      - patch
-      - list
-      - delete
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: tekton-pipeline
-  namespace: infra
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: tekton-pipeline
-subjects:
-  - kind: ServiceAccount
-    name: tekton-pipeline
-    namespace: infra
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: tekton-pipeline
@@ -52,6 +15,33 @@ rules:
       - gitrepositories
     verbs:
       - get
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+    verbs:
+      - create
+      - get
+      - patch
+  - apiGroups:
+      - "apps"
+    resources:
+      - replicasets
+    verbs:
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - secrets
+      - serviceaccounts
+    verbs:
+      - get
+      - create
+      - update
+      - patch
+      - list
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
