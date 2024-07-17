@@ -1,0 +1,68 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: maven-lib
+  namespace: infra
+spec:
+  description: |
+    This pipeline does the following:
+      - Checks out a Git repository containing a Maven library.
+      - Builds the Maven library.
+      - Deploys the resulting artifact to a Maven repository.
+  params:
+  - name: url
+    type: string
+  - name: revision
+    type: string
+    default: "main"
+  - name: context-dir
+    type: string
+    default: "."
+    description: >-
+      The directory from which to launch the Maven build
+  - name: maven-repo
+    default: artifactory-oss.infra.svc.cluster.local:8082
+  - name: maven-image
+    default: gcr.io/cloud-builders/mvn:3.9.1
+  workspaces:
+  - name: source
+  - name: maven-settings
+  - name: maven-local-repo
+  - name: ssh-directory
+  tasks:
+  - name: fetch-source
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(params.url)
+    - name: revision
+      value: $(params.revision)
+    workspaces:
+    - name: output
+      workspace: source
+    - name: ssh-directory
+      workspace: ssh-directory
+  - name: build-and-push
+    runAfter:
+      - fetch-source
+    taskRef:
+      kind: Task
+      name: maven
+    params:
+    - name: MAVEN_IMAGE
+      value: $(params.maven-image)
+    - name: GOALS
+      value:
+        - '-pl'
+        - $(params.context-dir)
+        - '-B'
+        - clean
+        - deploy
+    workspaces:
+      - name: source
+        workspace: source
+      - name: maven-settings
+        workspace: maven-settings
+      - name: maven-local-repo
+        workspace: maven-local-repo
