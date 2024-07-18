@@ -50,6 +50,8 @@ spec:
     default: "0.1.0"
   - name: helm-chart-release-namespace
     default: ""
+  - name: maven-image
+    default: gcr.io/cloud-builders/mvn:3.9.1
   workspaces:
   - name: maven-source
   - name: maven-settings
@@ -132,6 +134,8 @@ spec:
       kind: Task
       name: maven
     params:
+    - name: MAVEN_IMAGE
+      value: $(params.maven-image)
     - name: GOALS
       value:
         - '-pl'
