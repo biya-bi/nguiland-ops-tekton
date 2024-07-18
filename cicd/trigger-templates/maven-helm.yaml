@@ -61,7 +61,7 @@ spec:
                 storage: 100Mi
       - name: ssh-directory
         secret:
-          secretName: git-ssh
+          secretName: ssh-credentials
       params:
       - name: maven-flux-gitrepo-namespace
         value: $(tt.params.namespace)
