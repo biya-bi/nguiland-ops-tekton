@@ -40,7 +40,6 @@ spec:
     default: artifactory-jcr.infra:30000
   - name: image-registry-repo
     default: docker-local
-  - name: image-tag
   - name: helm-chart-repo-url
     type: string
   - name: helm-chart-repo-revision
@@ -50,6 +49,8 @@ spec:
     default: "0.1.0"
   - name: helm-chart-release-namespace
     default: ""
+  - name: helm-charts-dir
+    default: "charts"
   - name: maven-image
     default: gcr.io/cloud-builders/mvn:3.9.1
   workspaces:
@@ -120,16 +121,20 @@ spec:
       workspace: maven-source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: get-maven-repo-name
+  - name: get-maven-artifact-details
+    runAfter:
+      - fetch-maven-source
     taskRef:
-      name: git-repo-name
+      name: maven-artifact-details
     params:
-    - name: url
-      value: $(tasks.parse-maven-flux.results.url)
+    - name: context-dir
+      value: $(params.maven-context-dir)
+    workspaces:
+      - name: source
+        workspace: maven-source
   - name: build-maven-source
     runAfter:
       - fetch-maven-source
-      - get-maven-repo-name
     taskRef:
       kind: Task
       name: maven
@@ -153,13 +158,14 @@ spec:
   - name: build-docker-image
     runAfter:
       - build-maven-source
+      - get-maven-artifact-details
     taskRef:
       name: kaniko
     params:
       - name: CONTEXT
         value: $(params.maven-context-dir)
       - name: IMAGE
-        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name):$(params.image-tag)
+        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id):$(tasks.get-maven-artifact-details.results.version)
       # - name: STORAGE_DRIVER
       #   value: "$(params.storageDriver)"
     workspaces:
@@ -189,11 +195,11 @@ spec:
       name: helm-chart-update
     params:
     - name: repository
-      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-maven-repo-name.results.repo-name)
+      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: tag
-      value: $(params.image-tag)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
+      value: $(tasks.get-maven-artifact-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
     - name: chart-dir
-      value: $(tasks.get-maven-repo-name.results.repo-name)
+      value: $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)
     workspaces:
     - name: source
       workspace: helm-source
@@ -212,7 +218,7 @@ spec:
     - name: current-tag
       value: $(tasks.update-helm-chart.results.current-tag)
     - name: component-name
-      value: $(tasks.get-maven-repo-name.results.repo-name)
+      value: $(tasks.get-maven-artifact-details.results.artifact-id)
   - name: push-helm-chart
     runAfter:
       - get-helm-chart-commit-message
@@ -226,7 +232,7 @@ spec:
     - name: GIT_SCRIPT
       value: |
         git config --global --add safe.directory $(workspaces.source.path)
-        git add $(tasks.get-maven-repo-name.results.repo-name)/values.yaml
+        git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/values.yaml
         git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
         git push origin HEAD:$(params.helm-chart-repo-revision)
     workspaces:
@@ -241,11 +247,11 @@ spec:
       name: helm-upgrade-from-source
     params:
     - name: charts_dir
-      value: $(tasks.get-maven-repo-name.results.repo-name)
+      value: $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: release_version
       value: $(params.helm-chart-release-version)
     - name: release_name
-      value: $(tasks.get-maven-repo-name.results.repo-name)
+      value: $(tasks.get-maven-artifact-details.results.artifact-id)
     - name: release_namespace
       value: $(params.helm-chart-release-namespace)
     workspaces:

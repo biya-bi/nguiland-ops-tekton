@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: maven-artifact-details
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Build
+    tekton.dev/tags: maven
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will extract the artifact details from the pom.xml file of the supplied Maven project.
+
+  params:
+    - name: context-dir
+      default: "."
+    - name: image
+      default: docker.io/mikefarah/yq:4.44.2
+  workspaces:
+    - name: source
+  results:
+    - name: group-id
+    - name: artifact-id
+    - name: version
+  steps:
+    - name: extract
+      image: $(params.image)
+      workingDir: $(workspaces.source.path)/$(params.context-dir)
+      script: |
+        group_id=$(yq '.project.groupId' pom.xml)
+        if [ -z "${group_id}" ]; then
+          group_id=$(yq '.project.parent.groupId' pom.xml)
+        fi
+
+        artifact_id=$(yq '.project.artifactId' pom.xml)
+
+        version=$(yq '.project.version' pom.xml)
+        if [ -z "${version}" ]; then
+          version=$(yq '.project.parent.version' pom.xml)
+        fi
+
+        printf "%s" "${group_id}" > "$(results.group-id.path)"
+        printf "%s" "${artifact_id}" > "$(results.artifact-id.path)"
+        printf "%s" "${version}" > "$(results.version.path)"
