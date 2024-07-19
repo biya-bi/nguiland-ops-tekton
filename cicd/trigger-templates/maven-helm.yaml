@@ -7,8 +7,6 @@ spec:
   params:
   - name: namespace
   - name: repository
-  - name: image-tag
-    default: "1.0"
   - name: helm-chart-repo-url
   - name: maven-context-dir
     default: "."
@@ -67,8 +65,6 @@ spec:
         value: $(tt.params.namespace)
       - name: maven-flux-gitrepo-name
         value: $(tt.params.repository)
-      - name: image-tag
-        value: $(tt.params.image-tag)
       - name: helm-chart-repo-url
         value: $(tt.params.helm-chart-repo-url)
       - name: maven-context-dir
