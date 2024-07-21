@@ -7,9 +7,11 @@ spec:
   params:
   - name: namespace
   - name: repository
-  - name: helm-chart-repo-url
   - name: maven-context-dir
     default: "."
+  - name: helm-chart-repo-url
+  - name: helm-chart-release-namespace
+  - name: helm-charts-dir
   resourcetemplates:
   - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
@@ -65,7 +67,11 @@ spec:
         value: $(tt.params.namespace)
       - name: maven-flux-gitrepo-name
         value: $(tt.params.repository)
-      - name: helm-chart-repo-url
-        value: $(tt.params.helm-chart-repo-url)
       - name: maven-context-dir
         value: $(tt.params.maven-context-dir)
+      - name: helm-chart-repo-url
+        value: $(tt.params.helm-chart-repo-url)
+      - name: helm-chart-release-namespace
+        value: $(tt.params.helm-chart-release-namespace)
+      - name: helm-charts-dir
+        value: $(tt.params.helm-charts-dir)

@@ -10,6 +10,10 @@ spec:
   - name: repository
     value: $(body.involvedObject.name)
   - name: maven-context-dir
-    value: springboot
+    value: $(body.metadata.mavenContextDir)
   - name: helm-chart-repo-url
-    value: git@github.com:biya-bi/tekton-tutorial-greeter-chart.git
+    value: $(body.metadata.helmChartRepoUrl)
+  - name: helm-chart-release-namespace
+    value: $(body.metadata.helmChartReleaseNamespace)
+  - name: helm-charts-dir
+    value: $(body.metadata.helmChartsDir)
