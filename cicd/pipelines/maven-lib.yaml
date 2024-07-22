@@ -12,9 +12,18 @@ spec:
   params:
   - name: url
     type: string
+    default: ""
   - name: revision
     type: string
     default: "main"
+  - name: flux-gitrepo-namespace
+    type: string
+    default: ""
+    description: The namespace containing the Flux Git repository representing the Maven project.
+  - name: flux-gitrepo-name
+    type: string
+    default: ""
+    description: The name of the Flux Git repository representing the Maven project.
   - name: context-dir
     type: string
     default: "."
@@ -29,15 +38,62 @@ spec:
   - name: maven-settings
   - name: maven-local-repo
   - name: ssh-directory
+  - name: flux-manifest-dir
   tasks:
-  - name: fetch-source
+  - name: validate
     taskRef:
-      name: git-clone
+      name: git-flux-validation
+    params:
+    - name: url
+      value: $(params.url)
+    - name: flux-gitrepo-namespace
+      value: $(params.flux-gitrepo-namespace)
+    - name: flux-gitrepo-name
+      value: $(params.flux-gitrepo-name)
+  - name: get-flux-gitrepo
+    runAfter:
+      - validate
+    taskRef:
+      name: kubernetes-actions
+    params:
+    - name: script
+      value: |
+        repository_name=$(params.flux-gitrepo-name)
+        namespace=$(params.flux-gitrepo-namespace)
+
+        kubectl get gitrepository "${repository_name}" -n "${namespace}" -o yaml > gitrepo.yaml
+    workspaces:
+    - name: manifest-dir
+      workspace: flux-manifest-dir
+    when:
+    - input: $(params.url)
+      operator: in
+      values: [""]
+  - name: parse-flux-gitrepo
+    runAfter:
+      - get-flux-gitrepo
+    taskRef:
+      name: git-flux-parsing
     params:
     - name: url
       value: $(params.url)
     - name: revision
       value: $(params.revision)
+    - name: manifest-file
+      value: gitrepo.yaml
+    workspaces:
+    - name: manifest-dir
+      workspace: flux-manifest-dir
+  - name: fetch-source
+    runAfter:
+      - parse-flux-gitrepo
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(tasks.parse-flux-gitrepo.results.url)
+    - name: revision
+      value: $(tasks.parse-flux-gitrepo.results.revision)
     workspaces:
     - name: output
       workspace: source
