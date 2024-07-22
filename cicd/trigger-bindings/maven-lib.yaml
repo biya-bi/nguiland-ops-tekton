@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: maven-lib
+  namespace: infra
+spec: 
+  params:
+  - name: namespace
+    value: $(body.involvedObject.namespace)
+  - name: repository
+    value: $(body.involvedObject.name)
+  - name: context-dir
+    value: $(body.metadata.contextDir)

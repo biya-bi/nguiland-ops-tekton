@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: maven-lib
+  namespace: infra
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: maven-lib
+      bindings:
+      - ref: maven-lib
+      template:
+        ref: maven-lib

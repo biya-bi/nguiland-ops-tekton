@@ -1,0 +1,58 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: maven-lib
+  namespace: infra
+spec:
+  params:
+  - name: namespace
+  - name: repository
+  - name: context-dir
+    default: "."
+  resourcetemplates:
+  - apiVersion: tekton.dev/v1beta1
+    kind: PipelineRun
+    metadata:
+      generateName: maven-lib-run-
+      namespace: infra
+    spec:
+      pipelineRef:
+        name: maven-lib
+      podTemplate:
+        securityContext:
+          fsGroup: 65532
+      serviceAccountName: tekton-pipeline
+      workspaces:
+      - name: source
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 100Mi
+      - name: maven-settings
+        secret:
+          secretName: maven-settings
+      - name: maven-local-repo
+        persistentVolumeClaim:
+          claimName: maven-local-repo
+      - name: ssh-directory
+        secret:
+          secretName: ssh-credentials
+      - name: flux-manifest-dir
+        volumeClaimTemplate:
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 10Mi
+      params:
+      - name: flux-gitrepo-namespace
+        value: $(tt.params.namespace)
+      - name: flux-gitrepo-name
+        value: $(tt.params.repository)
+      - name: context-dir
+        value: $(tt.params.context-dir)
+
