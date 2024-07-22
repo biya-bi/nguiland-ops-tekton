@@ -36,9 +36,9 @@ spec:
       script: |
         url=$(echo $(params.url) | xargs)
         revision=$(echo $(params.revision) | xargs)
-        manifest_file=$(echo $(params.manifest-file) | xargs)
 
         if [ -z "${url}" ]; then
+          manifest_file=$(echo $(params.manifest-file) | xargs)
           url=$(cat "${manifest_file}" | yq .spec.url)
           revision=$(cat "${manifest_file}" | yq .spec.ref.branch)
         fi
