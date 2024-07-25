@@ -146,6 +146,7 @@ spec:
         - '-pl'
         - $(params.maven-context-dir)
         - '-B'
+        - '-U'
         - clean
         - package
     workspaces:

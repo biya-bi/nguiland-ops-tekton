@@ -113,6 +113,7 @@ spec:
         - '-pl'
         - $(params.context-dir)
         - '-B'
+        - '-U'
         - clean
         - deploy
     workspaces:
