@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: node-helm
+  namespace: infra
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: node-helm
+      bindings:
+      - ref: node-helm
+      template:
+        ref: node-helm

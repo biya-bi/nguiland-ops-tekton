@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: node-package-details
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Build
+    tekton.dev/tags: maven
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will extract the package details from the package.json file of the supplied Node project.
+
+  params:
+    - name: context-dir
+      default: "."
+    - name: image
+      default: docker.io/mikefarah/yq:4.44.2
+  workspaces:
+    - name: source
+  results:
+    - name: package
+    - name: version
+  steps:
+    - name: extract
+      image: $(params.image)
+      workingDir: $(workspaces.source.path)/$(params.context-dir)
+      script: |
+        package=$(echo $(yq '.name' package.json) | sed 's/"//g')
+        version=$(echo $(yq '.version' package.json) | sed 's/"//g')
+
+        printf "%s" "${package}" > "$(results.package.path)"
+        printf "%s" "${version}" > "$(results.version.path)"

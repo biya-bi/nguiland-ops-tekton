@@ -1,0 +1,235 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: node-helm
+  namespace: infra
+spec:
+  description: |
+    This pipeline does the following:
+      - Checks out a Git repository containing a Node project.
+      - Builds a Docker image from the Node project.
+      - Pushes the built Docker image to an image registry.
+      - Checkouts out a Git repository containing a Helm chart for the project.
+      - Updates the image repository and tag to match the just built Docker image.
+      - Commits and pushes the changes done on the Helm chart.
+      - Deploys the Helm chart to the Kubernetes cluster.
+  params:
+  - name: node-repo-url
+    type: string
+    default: ""
+  - name: node-repo-revision
+    type: string
+    default: "main"
+  - name: node-flux-gitrepo-namespace
+    type: string
+    default: ""
+    description: The namespace containing the Flux Git repository representing the Node project.
+  - name: node-flux-gitrepo-name
+    type: string
+    default: ""
+    description: The name of the Flux Git repository representing the Node project.
+  - name: node-context-dir
+    type: string
+    default: "."
+    description: >-
+      The directory from which to launch the Node build
+  - name: image-registry-cluster-socket
+    default: artifactory-jcr.infra.svc.cluster.local:8082
+  - name: image-registry-ingress-socket
+    default: artifactory-jcr.infra:30000
+  - name: image-registry-repo
+    default: docker-local
+  - name: helm-chart-repo-url
+    type: string
+  - name: helm-chart-repo-revision
+    type: string
+    default: "main"
+  - name: helm-chart-release-version
+    default: "0.1.0"
+  - name: helm-chart-release-namespace
+    default: ""
+  - name: helm-charts-dir
+    default: "charts"
+  - name: node-image
+    default: gcr.io/cloud-builders/mvn:3.9.1
+  workspaces:
+  - name: node-source
+  - name: node-settings
+  - name: node-local-repo
+  - name: node-flux-manifests
+  - name: docker-config
+  - name: helm-source
+  - name: ssh-directory
+  tasks:
+  - name: validate-node-flux
+    taskRef:
+      name: git-flux-validation
+    params:
+    - name: url
+      value: $(params.node-repo-url)
+    - name: flux-gitrepo-namespace
+      value: $(params.node-flux-gitrepo-namespace)
+    - name: flux-gitrepo-name
+      value: $(params.node-flux-gitrepo-name)
+  - name: get-node-flux-gitrepo
+    runAfter:
+      - validate-node-flux
+    taskRef:
+      name: kubernetes-actions
+    params:
+    - name: script
+      value: |
+        repository_name=$(params.node-flux-gitrepo-name)
+        namespace=$(params.node-flux-gitrepo-namespace)
+
+        kubectl get gitrepository "${repository_name}" -n "${namespace}" -o yaml > gitrepo.yaml
+    workspaces:
+    - name: manifest-dir
+      workspace: node-flux-manifests
+    when:
+    - input: $(params.node-repo-url)
+      operator: in
+      values: [""]
+  - name: parse-node-flux
+    runAfter:
+      - get-node-flux-gitrepo
+    taskRef:
+      name: git-flux-parsing
+    params:
+    - name: url
+      value: $(params.node-repo-url)
+    - name: revision
+      value: $(params.node-repo-revision)
+    - name: manifest-file
+      value: gitrepo.yaml
+    workspaces:
+    - name: manifest-dir
+      workspace: node-flux-manifests
+  - name: fetch-node-source
+    runAfter:
+      - parse-node-flux
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(tasks.parse-node-flux.results.url)
+    - name: revision
+      value: $(tasks.parse-node-flux.results.revision)
+    workspaces:
+    - name: output
+      workspace: node-source
+    - name: ssh-directory
+      workspace: ssh-directory
+  - name: get-node-package-details
+    runAfter:
+      - fetch-node-source
+    taskRef:
+      name: node-package-details
+    params:
+    - name: context-dir
+      value: $(params.node-context-dir)
+    workspaces:
+      - name: source
+        workspace: node-source
+  - name: build-docker-image
+    runAfter:
+      - fetch-node-source
+      - get-node-package-details
+    taskRef:
+      name: kaniko
+    params:
+      - name: CONTEXT
+        value: $(params.node-context-dir)
+      - name: IMAGE
+        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(tasks.get-node-package-details.results.package):$(tasks.get-node-package-details.results.version)
+      # - name: STORAGE_DRIVER
+      #   value: "$(params.storageDriver)"
+    workspaces:
+      - name: source
+        workspace: node-source
+      - name: dockerconfig
+        workspace: docker-config
+  - name: fetch-helm-source
+    runAfter:
+      - build-docker-image
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(params.helm-chart-repo-url)
+    - name: revision
+      value: $(params.helm-chart-repo-revision)
+    workspaces:
+    - name: output
+      workspace: helm-source
+    - name: ssh-directory
+      workspace: ssh-directory
+  - name: update-helm-chart
+    runAfter:
+      - fetch-helm-source
+    taskRef:
+      name: helm-chart-update
+    params:
+    - name: repository
+      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-node-package-details.results.package)
+    - name: tag
+      value: $(tasks.get-node-package-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
+    - name: chart-dir
+      value: $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)
+    workspaces:
+    - name: source
+      workspace: helm-source
+  - name: get-helm-chart-commit-message
+    runAfter:
+      - update-helm-chart
+    taskRef:
+      name: image-commit-message
+    params:
+    - name: previous-repository
+      value: $(tasks.update-helm-chart.results.previous-repository)
+    - name: previous-tag
+      value: $(tasks.update-helm-chart.results.previous-tag)
+    - name: current-repository
+      value: $(tasks.update-helm-chart.results.current-repository)
+    - name: current-tag
+      value: $(tasks.update-helm-chart.results.current-tag)
+    - name: component-name
+      value: $(tasks.get-node-package-details.results.package)
+  - name: push-helm-chart
+    runAfter:
+      - get-helm-chart-commit-message
+    taskRef:
+      name: git-cli
+    params:
+    - name: GIT_USER_NAME
+      value: "Rainbow Tekton"
+    - name: GIT_USER_EMAIL
+      value: "tekton@rainbow.org"
+    - name: GIT_SCRIPT
+      value: |
+        git config --global --add safe.directory $(workspaces.source.path)
+        git add $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)/values.yaml
+        git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
+        git push origin HEAD:$(params.helm-chart-repo-revision)
+    workspaces:
+    - name: source
+      workspace: helm-source
+    - name: ssh-directory
+      workspace: ssh-directory
+  - name: deploy-helm-chart
+    runAfter:
+      - push-helm-chart
+    taskRef:
+      name: helm-upgrade-from-source
+    params:
+    - name: charts_dir
+      value: $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)
+    - name: release_version
+      value: $(params.helm-chart-release-version)
+    - name: release_name
+      value: $(tasks.get-node-package-details.results.package)
+    - name: release_namespace
+      value: $(params.helm-chart-release-namespace)
+    workspaces:
+    - name: source
+      workspace: helm-source

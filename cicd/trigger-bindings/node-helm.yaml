@@ -1,0 +1,19 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: node-helm
+  namespace: infra
+spec: 
+  params:
+  - name: namespace
+    value: $(body.involvedObject.namespace)
+  - name: repository
+    value: $(body.involvedObject.name)
+  - name: node-context-dir
+    value: $(body.metadata.nodeContextDir)
+  - name: helm-chart-repo-url
+    value: $(body.metadata.helmChartRepoUrl)
+  - name: helm-chart-release-namespace
+    value: $(body.metadata.helmChartReleaseNamespace)
+  - name: helm-charts-dir
+    value: $(body.metadata.helmChartsDir)
