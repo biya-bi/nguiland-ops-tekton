@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: nginx-dockerfile
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "Nginx Dockerfile"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task uses a supplied distribution directory to create a simple Dockerfile from an nginx image. 
+    One use case is copying the output of the build of a Node.js application into an nginx image.
+
+  params:
+    - name: context-dir
+    - name: distribution
+    - name: alpine-image
+      default: docker.io/alpine:3.20.1
+    - name: nginx-image
+      default: nginx:1.27.0
+  workspaces:
+    - name: source
+  steps:
+    - name: create
+      image: $(params.alpine-image)
+      workingDir: $(workspaces.source.path)/$(params.context-dir)
+      script: |
+        echo FROM $(params.nginx-image) > Dockerfile
+        echo COPY $(params.distribution) /usr/share/nginx/html >> Dockerfile
+        echo EXPOSE 80 >> Dockerfile

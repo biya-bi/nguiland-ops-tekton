@@ -33,6 +33,7 @@ spec:
     default: "."
     description: >-
       The directory from which to launch the Node build
+  - name: group-id
   - name: image-registry-cluster-socket
     default: artifactory-jcr.infra.svc.cluster.local:8082
   - name: image-registry-ingress-socket
@@ -131,27 +132,56 @@ spec:
     workspaces:
       - name: source
         workspace: node-source
-  - name: build-docker-image
+  - name: build-node-source
     runAfter:
-      - fetch-node-source
       - get-node-package-details
+    taskRef:
+      name: node-build
+    params:
+    - name: group-id
+      value: $(params.group-id)
+    - name: package
+      value: $(tasks.get-node-package-details.results.package)
+    - name: context-dir
+      value: $(params.node-context-dir)
+    workspaces:
+      - name: source
+        workspace: node-source
+      - name: node-local-repo
+        workspace: node-local-repo
+  - name: create-nginx-dockerfile
+    runAfter:
+      - build-node-source
+    taskRef:
+      name: nginx-dockerfile
+    params:
+    - name: context-dir
+      value: $(tasks.build-node-source.results.package-dir)
+    - name: distribution
+      value: $(tasks.build-node-source.results.distribution)
+    workspaces:
+      - name: source
+        workspace: node-local-repo
+  - name: build-and-push-image
+    runAfter:
+      - create-nginx-dockerfile
     taskRef:
       name: kaniko
     params:
       - name: CONTEXT
-        value: $(params.node-context-dir)
+        value: $(params.group-id)/$(tasks.get-node-package-details.results.package)
       - name: IMAGE
-        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(tasks.get-node-package-details.results.package):$(tasks.get-node-package-details.results.version)
+        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package):$(tasks.get-node-package-details.results.version)
       # - name: STORAGE_DRIVER
       #   value: "$(params.storageDriver)"
     workspaces:
       - name: source
-        workspace: node-source
+        workspace: node-local-repo
       - name: dockerconfig
         workspace: docker-config
   - name: fetch-helm-source
     runAfter:
-      - build-docker-image
+      - build-and-push-image
     taskRef:
       name: git-clone
     params:
@@ -171,9 +201,9 @@ spec:
       name: helm-chart-update
     params:
     - name: repository
-      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-node-package-details.results.package)
+      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package)
     - name: tag
-      value: $(tasks.get-node-package-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
+      value: $(tasks.get-node-package-details.results.version)@$(tasks.build-and-push-image.results.IMAGE_DIGEST)
     - name: chart-dir
       value: $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)
     workspaces:

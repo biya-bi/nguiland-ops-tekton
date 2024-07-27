@@ -75,3 +75,5 @@ spec:
         value: $(tt.params.helm-chart-release-namespace)
       - name: helm-charts-dir
         value: $(tt.params.helm-charts-dir)
+      - name: group-id
+        value: $(tt.params.namespace)

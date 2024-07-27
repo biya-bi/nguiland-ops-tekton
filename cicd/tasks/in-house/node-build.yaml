@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: node-build
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "Git Flux Validation"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task will build a Node.js application
+
+  params:
+    - name: group-id
+    - name: package
+    - name: context-dir
+      default: "."
+    - name: node-image
+      default: node:22.5.1
+    - name: alpine-image
+      default: docker.io/alpine:3.20.1
+    - name: nginx-image
+      default: nginx:1.27.0
+    - name: kaniko-image
+      default: gcr.io/kaniko-project/executor:v1.5.1@sha256:c6166717f7fe0b7da44908c986137ecfeab21f31ec3992f6e128fff8a94be8a5
+  workspaces:
+    - name: source
+    - name: node-local-repo
+  results:
+    - name: package-dir
+    - name: distribution
+  steps:
+    - name: build
+      image: $(params.node-image)
+      script: |
+        #!/bin/bash
+        package_dir=$(params.group-id)/$(params.package)
+        absolute_package_path=$(workspaces.node-local-repo.path)/"${package_dir}"
+        node_modules="${absolute_package_path}/node_modules"
+
+        mkdir -p "${node_modules}"
+
+        yarn config set -- --modules-folder "${node_modules}"
+
+        if [ "${context_dir}" == "." ] || [ -z "${context_dir}" ]; then
+          source_dir=$(workspaces.source.path)
+        else
+          source_dir=$(workspaces.source.path)/$(params.context-dir)
+        fi
+
+        cp -r "${source_dir}"/* "${absolute_package_path}"
+        
+        cd "${absolute_package_path}"
+
+        yarn install --configuration production
+        yarn run build --configuration production
+
+        printf "%s" "${package_dir}" > $(results.package-dir.path)
+        printf "%s" ./dist/$(params.package)/browser > $(results.distribution.path)
