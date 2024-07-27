@@ -179,9 +179,22 @@ spec:
         workspace: node-local-repo
       - name: dockerconfig
         workspace: docker-config
+  - name: clean-node-local-repo
+    runAfter:
+    - build-and-push-image
+    taskRef:
+      name: delete-except
+    params:
+      - name: regex
+        value: node_modules
+      - name: context-dir
+        value: $(tasks.build-node-source.results.package-dir)
+    workspaces:
+      - name: parent-dir
+        workspace: node-local-repo
   - name: fetch-helm-source
     runAfter:
-      - build-and-push-image
+      - clean-node-local-repo
     taskRef:
       name: git-clone
     params:

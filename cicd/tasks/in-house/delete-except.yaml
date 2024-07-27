@@ -1,0 +1,34 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: delete-except
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "Git Flux Validation"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This deletes all files and directories, except the ones specified by the supplied regular expression.
+
+  params:
+    - name: regex
+    - name: context-dir
+      default: "."
+    - name: alpine-image
+      default: docker.io/alpine:3.20.1
+  workspaces:
+    - name: parent-dir
+  steps:
+    - name: delete
+      image: $(params.alpine-image)
+      workingDir: $(workspaces.parent-dir.path)/$(params.context-dir)
+      script: |
+        #!/bin/sh
+
+        ls -A | grep -xv $(params.regex) | xargs rm -rf
+
