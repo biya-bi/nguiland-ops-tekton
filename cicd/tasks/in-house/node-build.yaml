@@ -13,13 +13,14 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
-    This task builds a Node.js application. It assumes that the package.json file contains a script called build.
-
+    This task builds a Node.js application.
   params:
     - name: group-id
     - name: package
     - name: context-dir
       default: "."
+    - name: build-output-dir
+      default: "dist"
     - name: node-image
       default: node:22.5.1
     - name: alpine-image
@@ -39,26 +40,43 @@ spec:
       image: $(params.node-image)
       script: |
         #!/bin/bash
-        package_dir=$(params.group-id)/$(params.package)
-        absolute_package_path=$(workspaces.node-local-repo.path)/"${package_dir}"
-        node_modules="${absolute_package_path}/node_modules"
 
-        mkdir -p "${node_modules}"
+        build() {
+          local package_dir=$(params.group-id)/$(params.package)
+          local absolute_package_path=$(workspaces.node-local-repo.path)/"${package_dir}"
+          local node_modules="${absolute_package_path}/node_modules"
 
-        yarn config set -- --modules-folder "${node_modules}"
+          mkdir -p "${node_modules}"
 
-        if [ "${context_dir}" == "." ] || [ -z "${context_dir}" ]; then
-          source_dir=$(workspaces.source.path)
-        else
-          source_dir=$(workspaces.source.path)/$(params.context-dir)
-        fi
+          yarn config set -- --modules-folder "${node_modules}"
 
-        cp -r "${source_dir}"/* "${absolute_package_path}"
-        
-        cd "${absolute_package_path}"
+          if [ "${context_dir}" == "." ] || [ -z "${context_dir}" ]; then
+            local source_dir=$(workspaces.source.path)
+          else
+            local source_dir=$(workspaces.source.path)/$(params.context-dir)
+          fi
 
-        yarn install --configuration production
-        yarn build --configuration production
+          cp -r "${source_dir}"/* "${absolute_package_path}"
+          
+          cd "${absolute_package_path}"
 
-        printf "%s" "${package_dir}" > $(results.package-dir.path)
-        printf "%s" ./dist/$(params.package)/browser > $(results.distribution.path)
+          yarn install --configuration production
+          yarn build --configuration production
+
+          printf "%s" "${package_dir}" > $(results.package-dir.path)
+        }
+
+        set_distribution() {
+          local build_output_dir=$(params.build-output-dir)
+          local files=( $(find "${build_output_dir}" -name index.html -type f | xargs ls -A) )
+
+          local index_html="${files[0]}"
+
+          if [ -n "${index_html}" ]; then
+              local distribution=$(dirname $index_html)
+              printf "%s" ${distribution} > $(results.distribution.path)
+          fi
+        }
+
+        build
+        set_distribution

@@ -13,7 +13,9 @@ spec:
       - Updates the image repository and tag to match the just built Docker image.
       - Commits and pushes the changes done on the Helm chart.
       - Deploys the Helm chart to the Kubernetes cluster.
-    The pipeline assumes that the package.json file contains a script called build.
+    It assumes the following:
+      - The package.json file contains a script called build.
+      - The build script places its output in the directory specified by the build-output-dir parameter.
   params:
   - name: node-repo-url
     type: string
@@ -34,6 +36,8 @@ spec:
     default: "."
     description: >-
       The directory from which to launch the Node build
+  - name: node-build-output-dir
+    default: "dist"
   - name: group-id
   - name: image-registry-cluster-socket
     default: artifactory-jcr.infra.svc.cluster.local:8082
@@ -145,6 +149,8 @@ spec:
       value: $(tasks.get-node-package-details.results.package)
     - name: context-dir
       value: $(params.node-context-dir)
+    - name: build-output-dir
+      value: $(params.node-build-output-dir)
     workspaces:
       - name: source
         workspace: node-source

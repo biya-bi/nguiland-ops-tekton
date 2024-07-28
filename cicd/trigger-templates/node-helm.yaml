@@ -9,6 +9,8 @@ spec:
   - name: repository
   - name: node-context-dir
     default: "."
+  - name: node-build-output-dir
+    default: "dist"
   - name: helm-chart-repo-url
   - name: helm-chart-release-namespace
   - name: helm-charts-dir
@@ -69,6 +71,8 @@ spec:
         value: $(tt.params.repository)
       - name: node-context-dir
         value: $(tt.params.node-context-dir)
+      - name: node-build-output-dir
+        value: $(tt.params.node-build-output-dir)
       - name: helm-chart-repo-url
         value: $(tt.params.helm-chart-repo-url)
       - name: helm-chart-release-namespace

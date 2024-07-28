@@ -11,6 +11,8 @@ spec:
     value: $(body.involvedObject.name)
   - name: node-context-dir
     value: $(body.metadata.nodeContextDir)
+  - name: node-build-output-dir
+    value: $(body.metadata.nodeBuildOutputDir)
   - name: helm-chart-repo-url
     value: $(body.metadata.helmChartRepoUrl)
   - name: helm-chart-release-namespace
