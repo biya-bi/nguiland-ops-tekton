@@ -58,7 +58,7 @@ spec:
         cd "${absolute_package_path}"
 
         yarn install --configuration production
-        yarn run build --configuration production
+        yarn build --configuration production
 
         printf "%s" "${package_dir}" > $(results.package-dir.path)
         printf "%s" ./dist/$(params.package)/browser > $(results.distribution.path)
