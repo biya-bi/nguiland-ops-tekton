@@ -13,6 +13,7 @@ spec:
       - Updates the image repository and tag to match the just built Docker image.
       - Commits and pushes the changes done on the Helm chart.
       - Deploys the Helm chart to the Kubernetes cluster.
+    The pipeline assumes that the package.json file contains a script called build.
   params:
   - name: node-repo-url
     type: string

@@ -13,7 +13,7 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
-    This task will build a Node.js application
+    This task builds a Node.js application. It assumes that the package.json file contains a script called build.
 
   params:
     - name: group-id
