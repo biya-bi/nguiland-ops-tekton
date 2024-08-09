@@ -137,17 +137,16 @@ spec:
       - fetch-maven-source
     taskRef:
       kind: Task
-      name: maven
+      name: mvn
     params:
-    - name: MAVEN_IMAGE
+    - name: maven-image
       value: $(params.maven-image)
-    - name: GOALS
+    - name: goals
       value:
         - '-pl'
         - $(params.maven-context-dir)
         - '-B'
         - '-U'
-        - clean
         - package
     workspaces:
       - name: maven-settings

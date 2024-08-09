@@ -104,17 +104,16 @@ spec:
       - fetch-source
     taskRef:
       kind: Task
-      name: maven
+      name: mvn
     params:
-    - name: MAVEN_IMAGE
+    - name: maven-image
       value: $(params.maven-image)
-    - name: GOALS
+    - name: goals
       value:
         - '-pl'
         - $(params.context-dir)
         - '-B'
         - '-U'
-        - clean
         - deploy
     workspaces:
       - name: source
