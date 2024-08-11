@@ -54,21 +54,15 @@ spec:
     runAfter:
       - validate
     taskRef:
-      name: kubernetes-actions
+      name: flux-git-repo
     params:
-    - name: script
-      value: |
-        repository_name=$(params.flux-gitrepo-name)
-        namespace=$(params.flux-gitrepo-namespace)
-
-        kubectl get gitrepository "${repository_name}" -n "${namespace}" -o yaml > gitrepo.yaml
+    - name: repository
+      value: $(params.flux-gitrepo-name)
+    - name: namespace
+      value: $(params.flux-gitrepo-namespace)
     workspaces:
     - name: manifest-dir
       workspace: flux-manifest-dir
-    when:
-    - input: $(params.url)
-      operator: in
-      values: [""]
   - name: parse-flux-gitrepo
     runAfter:
       - get-flux-gitrepo
@@ -80,7 +74,7 @@ spec:
     - name: revision
       value: $(params.revision)
     - name: manifest-file
-      value: gitrepo.yaml
+      value: $(tasks.get-flux-gitrepo.results.manifest-file)
     workspaces:
     - name: manifest-dir
       workspace: flux-manifest-dir

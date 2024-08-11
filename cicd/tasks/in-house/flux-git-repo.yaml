@@ -1,0 +1,67 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: flux-git-repo
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "Flux Git Repostory"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task retrieves the Flux Git repository CRD corresponding to the supplied name and namespace.
+
+  params:
+    - name: repository
+      default: ""
+    - name: namespace
+      default: ""
+    - name: kubectl-image
+      default: gcr.io/cloud-builders/kubectl@sha256:8ab94be8b2b4f3d117f02d868b39540fddd225447abf4014f7ba4765cb39f753
+  workspaces:
+    - name: manifest-dir
+    - name: kubeconfig-dir
+      optional: true
+  results:
+    - name: manifest-file
+  steps:
+    - name: kubectl
+      image: $(params.kubectl-image)
+      workingDir: $(workspaces.manifest-dir.path)
+      script: |
+        #!/bin/bash
+
+        set -eu
+
+        repository=$(params.repository)
+        namespace=$(params.namespace)
+
+        if [ -z "${repository}" ] || [ -z "${namespace}" ]; then
+          printf "The Flux Git Repository will not be retrieved because the supplied repository or the namespace is blank. Exiting\n"
+          printf "%s" "" > $(results.manifest-file.path)
+          exit 0
+        fi
+
+        manifest_file=$(realpath $(mktemp -p .))
+
+        [[ "$(workspaces.kubeconfig-dir.bound)" == "true" ]] && \
+        [[ -f $(workspaces.kubeconfig-dir.path)/kubeconfig ]] && \
+        export KUBECONFIG=$(workspaces.kubeconfig-dir.path)/kubeconfig
+
+        kubectl get gitrepository "${repository}" -n "${namespace}" -o yaml | tee "${manifest_file}"
+
+        red_color='\033[0;31m'
+        default_color='\033[0m'
+
+        if [ -z "$(grep '[^[:space:]]' "$manifest_file")" ] ; then
+          printf "${red_color}The manifest file could not be retrieved!${default_color}\n" "${manifest_file}"
+          exit 1
+        else
+          printf "\n\nFlux Git Repository CRD was successfully retrieved and saved in %s\n" "${manifest_file}"
+          printf "%s" "${manifest_file}" > $(results.manifest-file.path)
+        fi
+
