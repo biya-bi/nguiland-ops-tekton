@@ -48,6 +48,8 @@ spec:
 
         manifest_file=$(realpath $(mktemp -p .))
 
+        chmod 644 "${manifest_file}"
+
         [[ "$(workspaces.kubeconfig-dir.bound)" == "true" ]] && \
         [[ -f $(workspaces.kubeconfig-dir.path)/kubeconfig ]] && \
         export KUBECONFIG=$(workspaces.kubeconfig-dir.path)/kubeconfig
