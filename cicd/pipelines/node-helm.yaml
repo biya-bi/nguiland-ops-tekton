@@ -60,7 +60,6 @@ spec:
     default: gcr.io/cloud-builders/mvn:3.9.1
   workspaces:
   - name: node-source
-  - name: node-settings
   - name: node-local-repo
   - name: node-flux-manifests
   - name: docker-config
