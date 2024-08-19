@@ -42,7 +42,7 @@ spec:
   - name: image-push-endpoint
     default: artifactory-jcr.infra.svc.cluster.local:8082
   - name: image-pull-endpoint
-    default: artifactory-jcr.infra:8082
+    default: artifactory-jcr.infra:30000
   - name: image-registry-repo
     default: docker-local
   - name: helm-chart-repo-url
