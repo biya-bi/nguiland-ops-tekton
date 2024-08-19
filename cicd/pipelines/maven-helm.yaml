@@ -34,9 +34,9 @@ spec:
     default: "."
     description: >-
       The directory from which to launch the Maven build
-  - name: image-registry-cluster-socket
+  - name: image-push-endpoint
     default: artifactory-jcr.infra.svc.cluster.local:8082
-  - name: image-registry-ingress-socket
+  - name: image-pull-endpoint
     default: artifactory-jcr.infra:8082
   - name: image-registry-repo
     default: docker-local
@@ -159,7 +159,7 @@ spec:
       - name: CONTEXT
         value: $(params.maven-context-dir)
       - name: IMAGE
-        value: $(params.image-registry-cluster-socket)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id):$(tasks.get-maven-artifact-details.results.version)
+        value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id):$(tasks.get-maven-artifact-details.results.version)
       # - name: STORAGE_DRIVER
       #   value: "$(params.storageDriver)"
     workspaces:
@@ -189,7 +189,7 @@ spec:
       name: helm-chart-update
     params:
     - name: repository
-      value: $(params.image-registry-ingress-socket)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
+      value: $(params.image-pull-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: tag
       value: $(tasks.get-maven-artifact-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
     - name: chart-dir
