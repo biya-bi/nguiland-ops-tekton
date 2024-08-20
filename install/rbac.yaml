@@ -35,6 +35,7 @@ rules:
       - services
       - secrets
       - serviceaccounts
+      - configmaps
     verbs:
       - get
       - create
