@@ -36,8 +36,6 @@ spec:
       The directory from which to launch the Maven build
   - name: image-push-endpoint
     default: artifactory-jcr.infra.svc.cluster.local:8082
-  - name: image-pull-endpoint
-    default: artifactory-jcr.infra:30000
   - name: image-registry-repo
     default: docker-local
   - name: helm-chart-repo-url
@@ -182,14 +180,19 @@ spec:
       workspace: helm-source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: update-helm-chart
+  - name: get-image-pull-endpoint
     runAfter:
       - fetch-helm-source
+    taskRef:
+      name: image-pull-endpoint
+  - name: update-helm-chart
+    runAfter:
+      - get-image-pull-endpoint
     taskRef:
       name: helm-chart-update
     params:
     - name: repository
-      value: $(params.image-pull-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
+      value: $(tasks.get-image-pull-endpoint.results.image-pull-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: tag
       value: $(tasks.get-maven-artifact-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
     - name: chart-dir
