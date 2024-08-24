@@ -49,6 +49,8 @@ spec:
     default: ""
   - name: helm-charts-dir
     default: "charts"
+  - name: environment
+    default: local
   - name: maven-image
     default: gcr.io/cloud-builders/mvn:3.9.1
   workspaces:
@@ -228,10 +230,15 @@ spec:
       value: "tekton@rainbow.org"
     - name: GIT_SCRIPT
       value: |
-        git config --global --add safe.directory $(workspaces.source.path)
-        git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/values.yaml
-        git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
-        git push origin HEAD:$(params.helm-chart-repo-revision)
+        environment=$(params.environment)
+        if [ -n "${environment}" ] && [ "${environment}" != "local" ]; then
+          git config --global --add safe.directory $(workspaces.source.path)
+          git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/values.yaml
+          git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
+          git push origin HEAD:$(params.helm-chart-repo-revision)
+        else
+          printf "Helm chart changes will not be committed because the environment is '%s'\n" "${environment}"
+        fi
     workspaces:
     - name: source
       workspace: helm-source
