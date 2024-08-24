@@ -21,6 +21,8 @@ spec:
       default: "."
     - name: build-output-dir
       default: "dist"
+    - name: environment
+      default: development
     - name: node-image
       default: node:22.5.1
     - name: alpine-image
@@ -60,8 +62,8 @@ spec:
           
           cd "${absolute_package_path}"
 
-          yarn install --configuration production
-          yarn build --configuration production
+          yarn install --configuration $(params.environment)
+          yarn build --configuration $(params.environment)
 
           printf "%s" "${package_dir}" > $(results.package-dir.path)
         }
