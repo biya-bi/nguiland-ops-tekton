@@ -20,6 +20,8 @@ spec:
     - name: tag
     - name: chart-dir
       default: "."
+    - name: environment
+      default: ""
     - name: image
       default: linuxserver/yq:3.4.3
   workspaces:
@@ -29,6 +31,7 @@ spec:
     - name: previous-tag
     - name: current-repository
     - name: current-tag
+    - name: values-file
   steps:
     - name: update
       image: $(params.image)
@@ -36,14 +39,26 @@ spec:
       script: |
         repository=$(params.repository)
         tag=$(params.tag)
+        environment=$(params.environment)
 
-        previous_repository=$(yq .image.repository values.yaml)
-        previous_tag=$(yq .image.tag values.yaml)
+        if [ -n "${environment}" ]; then
+          values_file=values."${environment}".yaml
+          if [[ ! -f "${values_file}" ]]; then
+            cp values.yaml "${values_file}"
+          fi
+        else
+          values_file="values.yaml"
+        fi
 
-        yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' values.yaml
+        previous_repository=$(yq .image.repository "${values_file}")
+        previous_tag=$(yq .image.tag "${values_file}")
+
+        yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' "${values_file}"
 
         printf "${previous_repository}" | tr -d \" > $(results.previous-repository.path)
         printf "${previous_tag}" | tr -d \" > $(results.previous-tag.path)
 
         printf "${repository}" | tr -d \" > $(results.current-repository.path)
         printf "${tag}" | tr -d \" > $(results.current-tag.path)
+        
+        printf "${values_file}" | tr -d \" > $(results.values-file.path)

@@ -199,6 +199,8 @@ spec:
       value: $(tasks.get-maven-artifact-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
     - name: chart-dir
       value: $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)
+    - name: environment
+      value: $(params.environment)
     workspaces:
     - name: source
       workspace: helm-source
@@ -233,7 +235,7 @@ spec:
         environment=$(params.environment)
         if [ -n "${environment}" ] && [ "${environment}" != "local" ]; then
           git config --global --add safe.directory $(workspaces.source.path)
-          git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/values.yaml
+          git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/$(tasks.update-helm-chart.results.values-file)
           git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
           git push origin HEAD:$(params.helm-chart-repo-revision)
         else
@@ -258,6 +260,8 @@ spec:
       value: $(tasks.get-maven-artifact-details.results.artifact-id)
     - name: release_namespace
       value: $(params.helm-chart-release-namespace)
+    - name: values_file
+      value: $(tasks.update-helm-chart.results.values-file)
     workspaces:
     - name: source
       workspace: helm-source
