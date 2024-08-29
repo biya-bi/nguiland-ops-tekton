@@ -207,19 +207,19 @@ spec:
       workspace: helm-source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: get-image-pull-endpoint
+  - name: get-env-settings
     runAfter:
       - fetch-helm-source
     taskRef:
-      name: image-pull-endpoint
+      name: env-settings
   - name: update-helm-chart
     runAfter:
-      - get-image-pull-endpoint
+      - get-env-settings
     taskRef:
       name: helm-chart-update
     params:
     - name: repository
-      value: $(tasks.get-image-pull-endpoint.results.image-pull-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package)
+      value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package)
     - name: tag
       value: $(tasks.get-node-package-details.results.version)@$(tasks.build-and-push-image.results.IMAGE_DIGEST)
     - name: chart-dir

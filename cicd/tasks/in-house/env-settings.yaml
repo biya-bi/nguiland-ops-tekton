@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: image-pull-endpoint
+  name: env-settings
   namespace: infra
   labels:
     app.kubernetes.io/version: "0.2"
@@ -13,7 +13,7 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
-    This task retrieves the image pull endpoint from a config map named env-settings
+    This task retrieves environment specific settings from a config map named env-settings
 
   params:
     - name: kubectl-image
@@ -21,6 +21,7 @@ spec:
     - name: yq-image
       default: docker.io/mikefarah/yq:4.44.2
   results:
+    - name: environment
     - name: image-pull-endpoint
   steps:
     - name: get-config-map
@@ -44,15 +45,18 @@ spec:
 
         printf "The %s config map has been retrieved successfully with the below content:\n\n" "${config_map_name}"
         cat "${env_settings}"
-    - name: retrieve-image-pull-endpoint
+    - name: retrieve-settings
       image: $(params.yq-image)
       script: |
         #!/bin/sh
 
         set -euo pipefail
 
+        environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.environment')
         image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.image-pull-endpoint')
 
+        printf "%s" "${environment}" > $(results.environment.path)
         printf "%s" "${image_pull_endpoint}" > $(results.image-pull-endpoint.path)
 
-        printf "The retrieved image pull endpoint is %s" "${image_pull_endpoint}"
+        printf "The environment is %s\n" "${environment}"
+        printf "The retrieved image pull endpoint is %s\n" "${image_pull_endpoint}"
