@@ -16,6 +16,8 @@ spec:
     This task retrieves environment specific settings from a config map named env-settings
 
   params:
+    - name: environment
+      default: ""
     - name: kubectl-image
       default: gcr.io/cloud-builders/kubectl@sha256:8ab94be8b2b4f3d117f02d868b39540fddd225447abf4014f7ba4765cb39f753
     - name: yq-image
@@ -52,7 +54,13 @@ spec:
 
         set -euo pipefail
 
-        environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.environment')
+        environment=$(params.environment)
+        if [ -n "${environment}" ]; then
+          printf "The environment won't be retrieved from the config map because an environment has been specified\n"
+        else
+          environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.environment')
+        fi
+
         image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.image-pull-endpoint')
 
         printf "%s" "${environment}" > $(results.environment.path)

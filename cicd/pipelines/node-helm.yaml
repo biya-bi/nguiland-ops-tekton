@@ -55,7 +55,7 @@ spec:
   - name: helm-charts-dir
     default: "charts"
   - name: environment
-    default: local
+    default: ""
   - name: node-image
     default: gcr.io/cloud-builders/mvn:3.9.1
   workspaces:
@@ -212,6 +212,9 @@ spec:
       - fetch-helm-source
     taskRef:
       name: env-settings
+    params:
+      - name: environment
+        value: $(params.environment)
   - name: update-helm-chart
     runAfter:
       - get-env-settings
@@ -225,7 +228,7 @@ spec:
     - name: chart-dir
       value: $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)
     - name: environment
-      value: $(params.environment)
+      value: $(tasks.get-env-settings.results.environment)
     workspaces:
     - name: source
       workspace: helm-source
@@ -257,7 +260,7 @@ spec:
       value: "tekton@rainbow.org"
     - name: GIT_SCRIPT
       value: |
-        environment=$(params.environment)
+        environment=$(tasks.get-env-settings.results.environment)
         if [ -n "${environment}" ] && [ "${environment}" != "local" ]; then
           git config --global --add safe.directory $(workspaces.source.path)
           git add $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)/$(tasks.update-helm-chart.results.values-file)
