@@ -55,7 +55,7 @@ spec:
         mkdir -p "${app_details_dir}"
         commit_id_file="${app_details_dir}"/commit-id
 
-        app_dir=$(workspaces.app-source.path)/app-context-dir
+        app_dir=$(workspaces.app-source.path)/$(params.app-context-dir)
         cd "${app_dir}"
 
         git config --global --add safe.directory "${app_dir}"
