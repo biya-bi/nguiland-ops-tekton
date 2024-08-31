@@ -229,9 +229,13 @@ spec:
       value: $(params.helm-charts-dir)/$(tasks.get-node-package-details.results.package)
     - name: environment
       value: $(tasks.get-env-settings.results.environment)
+    - name: app-context-dir
+      value: $(params.node-context-dir)
     workspaces:
-    - name: source
+    - name: chart-source
       workspace: helm-source
+    - name: app-source
+      workspace: node-source
   - name: get-helm-chart-commit-message
     runAfter:
       - update-helm-chart

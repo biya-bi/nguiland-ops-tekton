@@ -204,9 +204,13 @@ spec:
       value: $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: environment
       value: $(tasks.get-env-settings.results.environment)
+    - name: app-context-dir
+      value: $(params.maven-context-dir)
     workspaces:
-    - name: source
+    - name: chart-source
       workspace: helm-source
+    - name: app-source
+      workspace: maven-source
   - name: get-helm-chart-commit-message
     runAfter:
       - update-helm-chart

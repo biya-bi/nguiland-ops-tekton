@@ -22,10 +22,16 @@ spec:
       default: "."
     - name: environment
       default: ""
-    - name: image
+    - name: app-context-dir
+      default: "."
+    - name: git-cli-image
+      default: cgr.dev/chainguard/git:root-2.39@sha256:7759f87050dd8bacabe61354d75ccd7f864d6b6f8ec42697db7159eccd491139
+    - name: yq-image
       default: linuxserver/yq:3.4.3
   workspaces:
-    - name: source
+    - name: chart-source
+    - name: app-source
+      optional: true
   results:
     - name: previous-repository
     - name: previous-tag
@@ -33,15 +39,41 @@ spec:
     - name: current-tag
     - name: values-file
   steps:
-    - name: update
-      image: $(params.image)
-      workingDir: $(workspaces.source.path)/$(params.chart-dir)
+    - name: get-commit-id
+      image: $(params.git-cli-image)
       script: |
+        #!/usr/bin/env sh
+
+        set -euo pipefail
+
+        if [[ "$(workspaces.app-source.bound)" != "true" ]]; then
+          printf "Exiting because the application source workspace was not specified"
+          exit 0
+        fi
+
+        app_details_dir=/workspace/app-details
+        mkdir -p "${app_details_dir}"
+        commit_id_file="${app_details_dir}"/commit-id
+
+        app_dir=$(workspaces.app-source.path)/app-context-dir
+        cd "${app_dir}"
+        
+        git config --global --add safe.directory "${app_dir}"
+        git rev-parse HEAD > "${commit_id_file}"
+
+        chmod 644 "${commit_id_file}"
+
+    - name: update
+      image: $(params.yq-image)
+      workingDir: $(workspaces.chart-source.path)/$(params.chart-dir)
+      script: |
+        set -euo pipefail
+
         repository=$(params.repository)
         tag=$(params.tag)
         environment=$(params.environment)
 
-        if [ -n "${environment}" ] && [ "${environment}" != "local" ]; then
+        if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
           values_file=values."${environment}".yaml
           if [[ ! -f "${values_file}" ]]; then
             cp values.yaml "${values_file}"
@@ -62,3 +94,10 @@ spec:
         printf "${tag}" | tr -d \" > $(results.current-tag.path)
         
         printf "${values_file}" | tr -d \" > $(results.values-file.path)
+
+        commit_id_file=/workspace/app-details/commit-id
+
+        if [[ -f "${commit_id_file}" ]] && [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
+          commit_id=$(cat "${commit_id_file}")
+          yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
+        fi
