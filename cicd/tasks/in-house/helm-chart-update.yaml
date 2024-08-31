@@ -55,10 +55,10 @@ spec:
         mkdir -p "${app_details_dir}"
         commit_id_file="${app_details_dir}"/commit-id
 
-        app_dir=$(workspaces.app-source.path)/$(params.app-context-dir)
-        cd "${app_dir}"
+        git config --global --add safe.directory $(workspaces.app-source.path)
 
-        git config --global --add safe.directory "${app_dir}"
+        cd $(workspaces.app-source.path)/$(params.app-context-dir)
+
         git rev-parse HEAD > "${commit_id_file}"
 
         chmod 644 "${commit_id_file}"
