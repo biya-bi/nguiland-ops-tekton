@@ -199,7 +199,7 @@ spec:
     - name: repository
       value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: tag
-      value: $(tasks.get-maven-artifact-details.results.version)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
+      value: $(tasks.get-maven-artifact-details.results.version)
     - name: chart-dir
       value: $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)
     - name: environment
@@ -235,14 +235,18 @@ spec:
       value: "tekton@rainbow.org"
     - name: GIT_SCRIPT
       value: |
-        environment=$(tasks.get-env-settings.results.environment)
-        if [ -n "${environment}" ] && [ "${environment}" != "local" ]; then
-          git config --global --add safe.directory $(workspaces.source.path)
-          git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/$(tasks.update-helm-chart.results.values-file)
-          git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
-          git push origin HEAD:$(params.helm-chart-repo-revision)
+        if [[ $(git diff --stat) != '' ]]; then
+          environment=$(tasks.get-env-settings.results.environment)
+          if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
+            git config --global --add safe.directory $(workspaces.source.path)
+            git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/$(tasks.update-helm-chart.results.values-file)
+            git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
+            git push origin HEAD:$(params.helm-chart-repo-revision)
+          else
+            printf "Helm chart changes will not be committed because the environment is '%s'\n" "${environment}"
+          fi
         else
-          printf "Helm chart changes will not be committed because the environment is '%s'\n" "${environment}"
+          printf "Nothing will be committed because the working tree is clean\n"
         fi
     workspaces:
     - name: source
