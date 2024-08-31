@@ -41,7 +41,7 @@ spec:
         tag=$(params.tag)
         environment=$(params.environment)
 
-        if [ -n "${environment}" ]; then
+        if [ -n "${environment}" ] && [ "${environment}" != "local" ]; then
           values_file=values."${environment}".yaml
           if [[ ! -f "${values_file}" ]]; then
             cp values.yaml "${values_file}"

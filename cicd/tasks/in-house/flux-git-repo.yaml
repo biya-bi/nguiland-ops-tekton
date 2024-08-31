@@ -35,7 +35,7 @@ spec:
       script: |
         #!/bin/bash
 
-        set -eu
+        set -euo pipefail
 
         repository=$(params.repository)
         namespace=$(params.namespace)
@@ -56,14 +56,6 @@ spec:
 
         kubectl get gitrepository "${repository}" -n "${namespace}" -o yaml | tee "${manifest_file}"
 
-        red_color='\033[0;31m'
-        default_color='\033[0m'
-
-        if [ -z "$(grep '[^[:space:]]' "$manifest_file")" ] ; then
-          printf "${red_color}The manifest file could not be retrieved!${default_color}\n" "${manifest_file}"
-          exit 1
-        else
-          printf "\n\nFlux Git Repository CRD was successfully retrieved and saved in %s\n" "${manifest_file}"
-          printf "%s" "${manifest_file}" > $(results.manifest-file.path)
-        fi
+        printf "\n\nFlux Git Repository CRD was successfully retrieved and saved in %s\n" "${manifest_file}"
+        printf "%s" "${manifest_file}" > $(results.manifest-file.path)
 

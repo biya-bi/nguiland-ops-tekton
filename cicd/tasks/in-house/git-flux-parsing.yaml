@@ -34,6 +34,8 @@ spec:
       image: $(params.image)
       workingDir: $(workspaces.manifest-dir.path)
       script: |
+        set -euo pipefail
+
         url=$(echo $(params.url) | xargs)
         revision=$(echo $(params.revision) | xargs)
         manifest_file=$(params.manifest-file)
@@ -55,15 +57,13 @@ spec:
 
           printf "The supplied %s manifest file was found\n" "${manifest_file}"
           
-          if [ -z $(grep '[^[:space:]]' "${manifest_file}") ] ; then
+          if [ ! -s "${manifest_file}" ] ; then
             printf "${red_color}The supplied %s manifest file is empty${default_color}\n" "${manifest_file}"
             exit 1
           else
             printf "Extracting the URL and revision from %s\n" "${manifest_file}"
 
             manifest_content=$(cat "${manifest_file}")
-            printf "The content of %s is:\n" "${manifest_file}"
-            printf "\n%s\n" "${manifest_content}"
 
             url=$(echo "${manifest_content}" | yq .spec.url)
             revision=$(echo "${manifest_content}" | yq .spec.ref.branch)
