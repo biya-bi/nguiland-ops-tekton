@@ -57,7 +57,7 @@ spec:
 
         app_dir=$(workspaces.app-source.path)/app-context-dir
         cd "${app_dir}"
-        
+
         git config --global --add safe.directory "${app_dir}"
         git rev-parse HEAD > "${commit_id_file}"
 
@@ -69,35 +69,62 @@ spec:
       script: |
         set -euo pipefail
 
-        repository=$(params.repository)
-        tag=$(params.tag)
-        environment=$(params.environment)
-
-        if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
-          values_file=values."${environment}".yaml
-          if [[ ! -f "${values_file}" ]]; then
-            cp values.yaml "${values_file}"
+        parse_environment() {
+          local environment=$(params.environment)
+          if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
+            echo "${environment}"
+          else
+            echo ""
           fi
-        else
-          values_file="values.yaml"
-        fi
+        }
 
-        previous_repository=$(yq .image.repository "${values_file}")
-        previous_tag=$(yq .image.tag "${values_file}")
+        get_values_file() {
+          local environment="$1"
+          if [[ -n "${environment}" ]]; then
+            local values_file=values."${environment}".yaml
+            if [[ ! -f "${values_file}" ]]; then
+              cp values.yaml "${values_file}"
+            fi
+          else
+            values_file="values.yaml"
+          fi
+          echo "${values_file}"
+        }
 
-        yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' "${values_file}"
+        update_image() {
+          local values_file="$1"
 
-        printf "${previous_repository}" | tr -d \" > $(results.previous-repository.path)
-        printf "${previous_tag}" | tr -d \" > $(results.previous-tag.path)
+          local repository=$(params.repository)
+          local tag=$(params.tag)
 
-        printf "${repository}" | tr -d \" > $(results.current-repository.path)
-        printf "${tag}" | tr -d \" > $(results.current-tag.path)
-        
+          local previous_repository=$(yq .image.repository "${values_file}")
+          local previous_tag=$(yq .image.tag "${values_file}")
+
+          yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' "${values_file}"
+
+          printf "${previous_repository}" | tr -d \" > $(results.previous-repository.path)
+          printf "${previous_tag}" | tr -d \" > $(results.previous-tag.path)
+
+          printf "${repository}" | tr -d \" > $(results.current-repository.path)
+          printf "${tag}" | tr -d \" > $(results.current-tag.path)
+        }
+
+        set_app_commit_id() {
+          local environment="$1"
+          local values_file="$2"
+
+          commit_id_file=/workspace/app-details/commit-id
+
+          if [[ -f "${commit_id_file}" ]] && [[ -n "${environment}" ]]; then
+            commit_id=$(cat "${commit_id_file}")
+            yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
+          fi
+        }
+
+        environment=$(parse_environment)
+        values_file=$(get_values_file "${environment}")
+        update_image "${values_file}"
+        set_app_commit_id "${environment}" "${values_file}"
+
         printf "${values_file}" | tr -d \" > $(results.values-file.path)
 
-        commit_id_file=/workspace/app-details/commit-id
-
-        if [[ -f "${commit_id_file}" ]] && [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
-          commit_id=$(cat "${commit_id_file}")
-          yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
-        fi
