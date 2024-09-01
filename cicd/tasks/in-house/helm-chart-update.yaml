@@ -13,8 +13,8 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
-    This task will update the values used in the specified Helm chart. In particular, the image repository and tag will be updated.
-
+    This task updates the values used in the specified Helm chart. In particular, the image repository and tag will be updated.
+    The application Git commit ID is also added to the pod's annotations if the application source workspace is specified.
   params:
     - name: repository
     - name: tag
