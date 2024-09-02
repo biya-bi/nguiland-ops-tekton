@@ -73,9 +73,9 @@ spec:
         parse_environment() {
           local environment=$(params.environment)
           if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
-            echo "${environment}"
+            printf "${environment}"
           else
-            echo ""
+            printf ""
           fi
         }
 
@@ -89,7 +89,7 @@ spec:
           else
             values_file="values.yaml"
           fi
-          echo "${values_file}"
+          printf "${values_file}"
         }
 
         update_image() {
@@ -114,19 +114,23 @@ spec:
           local environment="$1"
           local values_file="$2"
 
-          commit_id_file=/workspace/app-details/commit-id
+          local commit_id_file=/workspace/app-details/commit-id
+
+          local commit_id=""
 
           if [[ -f "${commit_id_file}" ]] && [[ -n "${environment}" ]]; then
             commit_id=$(cat "${commit_id_file}")
             yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
-            printf "${commit_id}" > $(results.app-commit-id.path)
           fi
+
+          printf "${commit_id}"
         }
 
         environment=$(parse_environment)
         values_file=$(get_values_file "${environment}")
         update_image "${values_file}"
-        set_app_commit_id "${environment}" "${values_file}"
+        commit_id=$(set_app_commit_id "${environment}" "${values_file}")
 
         printf "${values_file}" | tr -d \" > $(results.values-file.path)
+        printf "${commit_id}" > $(results.app-commit-id.path)
 
