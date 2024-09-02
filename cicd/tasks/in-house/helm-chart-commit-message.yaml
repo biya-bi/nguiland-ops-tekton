@@ -39,7 +39,7 @@ spec:
           local previous_tag="$2"
           local current_repository="$3"
           local current_tag="$4"
-          local app_commit_id="$5"
+          local app_commit_id="$6" # CAUTION: Parameter number 5 is component_name
 
           local description=""
           if [ "${previous_repository}" != "${current_repository}" ]; then
