@@ -38,6 +38,7 @@ spec:
     - name: current-repository
     - name: current-tag
     - name: values-file
+    - name: app-commit-id
   steps:
     - name: get-commit-id
       image: $(params.git-cli-image)
@@ -118,6 +119,7 @@ spec:
           if [[ -f "${commit_id_file}" ]] && [[ -n "${environment}" ]]; then
             commit_id=$(cat "${commit_id_file}")
             yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
+            printf "${commit_id}" > $(results.app-commit-id.path)
           fi
         }
 

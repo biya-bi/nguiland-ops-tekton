@@ -13,7 +13,7 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
-    This task returns a commit message based on image repository and tag changes
+    This task returns a commit message based on information such as image repository, image tag, and application commit ID.
 
   params:
     - name: previous-repository
@@ -24,6 +24,8 @@ spec:
     - name: current-tag
       default: ""
     - name: component-name
+    - name: app-commit-id
+      default: ""
     - name: build-image
       default: docker.io/alpine:3.20.1
   results:
@@ -32,32 +34,12 @@ spec:
     - name: get-message
       image: $(params.build-image)
       script: |
-        get_title() {
-          local previous_repository="$1"
-          local previous_tag="$2"
-          local current_repository="$3"
-          local current_tag="$4"
-          local component_name="$5"
-
-          local title=""
-          if [ "${previous_repository}" != "${current_repository}" ] && [ "${previous_tag}" != "${current_tag}" ]; then
-            title="Update repository and tag"
-          elif [ "${previous_tag}" != "${current_tag}" ]; then
-            title="Update tag"
-          elif [ "${previous_repository}" != "${current_repository}" ]; then
-            title="Update repository"
-          fi
-          
-          if [ -n "${title}" ]; then
-            printf "%s: %s" "${component_name}" "${title}"
-          fi
-        }
-
         get_description() {
           local previous_repository="$1"
           local previous_tag="$2"
           local current_repository="$3"
           local current_tag="$4"
+          local app_commit_id="$5"
 
           local description=""
           if [ "${previous_repository}" != "${current_repository}" ]; then
@@ -73,11 +55,19 @@ spec:
               description=$(printf "%s%sPrevious tag: %s\nCurrent tag: %s" "${description}" "${line_separator}" "${previous_tag}" "${current_tag}")
           fi
 
+          if [ -n "${description}" ]; then
+            line_separator="\n"
+          fi
+
+          if [ -n "${app_commit_id}" ]; then
+              description=$(printf "%s%sApplication Commit ID: %s" "${description}" "${line_separator}" "${app_commit_id}")
+          fi
+
           printf "${description}"
         }
 
         get_message() {
-          local title=$(get_title "$@")
+          local title=$printf("Update %s" "${component_name}")
           local description=$(get_description "$@")
 
           local message="${title}"
@@ -93,7 +83,8 @@ spec:
         previous_tag=$(params.previous-tag)
         current_tag=$(params.current-tag)
         component_name=$(params.component-name)
+        app_commit_id=$(params.app-commit-id)
 
-        message=$(get_message "${previous_repository}" "${previous_tag}" "${current_repository}" "${current_tag}" "${component_name}")
+        message=$(get_message "${previous_repository}" "${previous_tag}" "${current_repository}" "${current_tag}" "${component_name}" "${app_commit_id}")
 
         printf "${message}" > $(results.message.path)

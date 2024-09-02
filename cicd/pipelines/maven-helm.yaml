@@ -227,6 +227,8 @@ spec:
       value: $(tasks.update-helm-chart.results.current-tag)
     - name: component-name
       value: $(tasks.get-maven-artifact-details.results.artifact-id)
+    - name: app-commit-id
+      value: $(tasks.update-helm-chart.results.app-commit-id)
   - name: get-helm-chart-push-script
     runAfter:
       - get-helm-chart-commit-message
