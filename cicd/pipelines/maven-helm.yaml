@@ -215,7 +215,7 @@ spec:
     runAfter:
       - update-helm-chart
     taskRef:
-      name: image-commit-message
+      name: helm-chart-commit-message
     params:
     - name: previous-repository
       value: $(tasks.update-helm-chart.results.previous-repository)
