@@ -67,7 +67,7 @@ spec:
         }
 
         get_message() {
-          local title=$printf("Update %s" "${component_name}")
+          local title=$(printf "Update %s" "${component_name}")
           local description=$(get_description "$@")
 
           local message="${title}"
