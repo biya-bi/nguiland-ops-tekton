@@ -1,0 +1,80 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: helm-chart-push-script
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Developer Tools
+    tekton.dev/tags: yq
+    tekton.dev/displayName: "Helm chart push script"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This constructs a here document containing a script to push a Helm chart to the remote Git repository.
+  params:
+    - name: chart-dir
+      default: "."
+    - name: context-dir
+      default: ""
+    - name: values-file
+      default: "values.yaml"
+    - name: environment
+      default: ""
+    - name: commit-message
+    - name: revision
+    - name: git-cli-image
+      default: cgr.dev/chainguard/git:root-2.39@sha256:7759f87050dd8bacabe61354d75ccd7f864d6b6f8ec42697db7159eccd491139
+  workspaces:
+    - name: source
+  results:
+    - name: script
+  steps:
+    - name: construct
+      image: $(params.git-cli-image)
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/usr/bin/env sh
+
+        set -euo pipefail
+
+        parse_environment() {
+          local environment=$(params.environment)
+          if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
+            printf "${environment}"
+          else
+            printf ""
+          fi
+        }
+
+        get_context_dir() {
+          local context_dir=$(params.context-dir)
+          if [[ -n "{context_dir}" ]]; then
+            printf "$(params.chart-dir)/${context_dir}"
+          else
+            printf $(params.chart-dir)
+          fi
+        }
+
+        environment=$(parse_environment)
+        context_dir=$(get_context_dir)
+
+        script=$(cat <<EOF
+        if [[ "$(git --git-dir=.git diff --stat)" != "" ]]; then
+          if [[ -n "${environment}" ]]; then
+            cd "${context_dir}"
+            git add $(params.values-file)
+            git commit -m "$(params.commit-message)"
+            git push origin HEAD:$(params.revision)
+          else
+            printf "Helm chart changes will not be committed because the environment is '%s'\n" "${environment}"
+          fi
+        else
+          printf "No changes were made to the Helm chart\n"
+        fi
+        EOF
+        )
+
+        printf "%s" "${script}" > $(results.script.path)

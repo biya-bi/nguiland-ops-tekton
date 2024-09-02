@@ -227,9 +227,30 @@ spec:
       value: $(tasks.update-helm-chart.results.current-tag)
     - name: component-name
       value: $(tasks.get-maven-artifact-details.results.artifact-id)
-  - name: push-helm-chart
+  - name: get-helm-chart-push-script
     runAfter:
       - get-helm-chart-commit-message
+    taskRef:
+      name: helm-chart-push-script
+    params:
+    - name: chart-dir
+      value: $(params.helm-charts-dir)
+    - name: context-dir
+      value: $(tasks.get-maven-artifact-details.results.artifact-id)
+    - name: values-file
+      value: $(tasks.update-helm-chart.results.values-file)
+    - name: environment
+      value: $(tasks.get-env-settings.results.environment)
+    - name: commit-message
+      value: $(tasks.get-helm-chart-commit-message.results.message)
+    - name: revision
+      value: $(params.helm-chart-repo-revision)
+    workspaces:
+    - name: source
+      workspace: helm-source
+  - name: push-helm-chart
+    runAfter:
+      - get-helm-chart-push-script
     taskRef:
       name: git-cli
     params:
@@ -239,19 +260,8 @@ spec:
       value: "tekton@rainbow.org"
     - name: GIT_SCRIPT
       value: |
-        if [[ $(git diff --stat) != '' ]]; then
-          environment=$(tasks.get-env-settings.results.environment)
-          if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
-            git config --global --add safe.directory $(workspaces.source.path)
-            git add $(params.helm-charts-dir)/$(tasks.get-maven-artifact-details.results.artifact-id)/$(tasks.update-helm-chart.results.values-file)
-            git commit -m "$(tasks.get-helm-chart-commit-message.results.message)"
-            git push origin HEAD:$(params.helm-chart-repo-revision)
-          else
-            printf "Helm chart changes will not be committed because the environment is '%s'\n" "${environment}"
-          fi
-        else
-          printf "Nothing will be committed because the working tree is clean\n"
-        fi
+        git config --global --add safe.directory $(workspaces.source.path)
+        $(tasks.get-helm-chart-push-script.results.script)
     workspaces:
     - name: source
       workspace: helm-source
