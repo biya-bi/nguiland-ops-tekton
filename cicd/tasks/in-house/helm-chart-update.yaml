@@ -118,8 +118,11 @@ spec:
 
           local commit_id=""
 
-          if [[ -f "${commit_id_file}" ]] && [[ -n "${environment}" ]]; then
+          if [[ -f "${commit_id_file}" ]]; then
             commit_id=$(cat "${commit_id_file}")
+          fi
+
+          if [[ -n "${commit_id}" ]] && [[ -n "${environment}" ]]; then
             yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
           fi
 
