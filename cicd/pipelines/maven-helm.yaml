@@ -264,6 +264,8 @@ spec:
       value: |
         git config --global --add safe.directory $(workspaces.source.path)
         $(tasks.get-helm-chart-push-script.results.script)
+    - name: VERBOSE
+      value: "false"
     workspaces:
     - name: source
       workspace: helm-source
