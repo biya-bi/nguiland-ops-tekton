@@ -259,9 +259,9 @@ spec:
       name: git-cli
     params:
     - name: GIT_USER_NAME
-      value: "Rainbow Tekton"
+      value: "Nguiland Tekton"
     - name: GIT_USER_EMAIL
-      value: "tekton@rainbow.org"
+      value: "tekton@nguiland.org"
     - name: GIT_SCRIPT
       value: |
         git config --global --add safe.directory $(workspaces.source.path)
