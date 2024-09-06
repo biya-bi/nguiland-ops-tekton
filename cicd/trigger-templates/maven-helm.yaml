@@ -10,6 +10,7 @@ spec:
   - name: maven-context-dir
     default: "."
   - name: helm-chart-repo-url
+  - name: helm-chart-repo-revision
   - name: helm-chart-release-namespace
   - name: helm-charts-dir
   resourcetemplates:
@@ -71,6 +72,8 @@ spec:
         value: $(tt.params.maven-context-dir)
       - name: helm-chart-repo-url
         value: $(tt.params.helm-chart-repo-url)
+      - name: helm-chart-repo-revision
+        value: $(tt.params.helm-chart-repo-revision)
       - name: helm-chart-release-namespace
         value: $(tt.params.helm-chart-release-namespace)
       - name: helm-charts-dir
