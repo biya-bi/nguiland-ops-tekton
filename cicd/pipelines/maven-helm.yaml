@@ -44,7 +44,7 @@ spec:
     type: string
     default: "main"
   - name: helm-chart-release-version
-    default: "0.1.0"
+    default: ""
   - name: helm-chart-release-namespace
     default: ""
   - name: helm-charts-dir
