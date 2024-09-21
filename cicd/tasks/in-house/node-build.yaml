@@ -45,6 +45,15 @@ spec:
 
         set -euo pipefail
 
+        get_context_dir() {
+          local context_dir=$(params.context-dir)
+          if [ "${context_dir}" == "." ] || [ -z "${context_dir}" ]; then
+            printf $(workspaces.source.path)
+          else
+            printf $(workspaces.source.path)/$(params.context-dir)
+          fi
+        }
+
         build() {
           local package_dir=$(params.group-id)/$(params.package)
           local absolute_package_path=$(workspaces.node-local-repo.path)/"${package_dir}"
@@ -54,11 +63,7 @@ spec:
 
           yarn config set -- --modules-folder "${node_modules}"
 
-          if [ "${context_dir}" == "." ] || [ -z "${context_dir}" ]; then
-            local source_dir=$(workspaces.source.path)
-          else
-            local source_dir=$(workspaces.source.path)/$(params.context-dir)
-          fi
+          local source_dir=$(get_context_dir)
 
           cp -r "${source_dir}"/* "${absolute_package_path}"
           
