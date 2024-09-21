@@ -132,9 +132,17 @@ spec:
     workspaces:
       - name: source
         workspace: node-source
-  - name: build-node-source
+  - name: get-env-settings
     runAfter:
       - get-node-package-details
+    taskRef:
+      name: env-settings
+    params:
+      - name: environment
+        value: $(params.environment)
+  - name: build-node-source
+    runAfter:
+      - get-env-settings
     taskRef:
       name: node-build
     params:
@@ -146,6 +154,8 @@ spec:
       value: $(params.node-context-dir)
     - name: build-output-dir
       value: $(params.node-build-output-dir)
+    - name: environment
+      value: $(tasks.get-env-settings.results.environment)
     workspaces:
       - name: source
         workspace: node-source
@@ -209,17 +219,9 @@ spec:
       workspace: helm-source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: get-env-settings
-    runAfter:
-      - fetch-helm-source
-    taskRef:
-      name: env-settings
-    params:
-      - name: environment
-        value: $(params.environment)
   - name: update-helm-chart
     runAfter:
-      - get-env-settings
+      - fetch-helm-source
     taskRef:
       name: helm-chart-update
     params:
