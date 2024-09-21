@@ -43,6 +43,8 @@ spec:
       script: |
         #!/bin/bash
 
+        set -euo pipefail
+
         build() {
           local package_dir=$(params.group-id)/$(params.package)
           local absolute_package_path=$(workspaces.node-local-repo.path)/"${package_dir}"
