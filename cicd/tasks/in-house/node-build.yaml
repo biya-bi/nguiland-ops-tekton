@@ -22,7 +22,7 @@ spec:
     - name: build-output-dir
       default: "dist"
     - name: environment
-      default: development
+      default: ""
     - name: node-image
       default: node:22.5.1
     - name: alpine-image
