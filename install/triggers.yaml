@@ -1482,8 +1482,8 @@ spec:
       serviceAccountName: tekton-triggers-controller
       containers:
         - name: tekton-triggers-controller
-          image: "gcr.io/tekton-releases/github.com/tektoncd/triggers/cmd/controller:v0.28.0@sha256:3f26f706dd332390e62ec9d0e203651db8eca9203ea3a103909dbe422075f01e"
-          args: ["-logtostderr", "-stderrthreshold", "INFO", "-el-image", "gcr.io/tekton-releases/github.com/tektoncd/triggers/cmd/eventlistenersink:v0.28.0@sha256:d9160c14106a05263ca34a14d47fb7f3c4a7f867ec76c6176a646a4add07e542", "-el-port", "8080", "-el-security-context=true", "-el-events", "disable", "-el-readtimeout", "5", "-el-writetimeout", "40", "-el-idletimeout", "120", "-el-timeouthandler", "30", "-el-httpclient-readtimeout", "30", "-el-httpclient-keep-alive", "30", "-el-httpclient-tlshandshaketimeout", "10", "-el-httpclient-responseheadertimeout", "10", "-el-httpclient-expectcontinuetimeout", "1", "-period-seconds", "10", "-failure-threshold", "3"]
+          image: "ghcr.io/tektoncd/github.com/tektoncd/triggers/cmd/controller:v0.28.0@sha256:3f26f706dd332390e62ec9d0e203651db8eca9203ea3a103909dbe422075f01e"
+          args: ["-logtostderr", "-stderrthreshold", "INFO", "-el-image", "ghcr.io/tektoncd/github.com/tektoncd/triggers/cmd/eventlistenersink:v0.28.0@sha256:d9160c14106a05263ca34a14d47fb7f3c4a7f867ec76c6176a646a4add07e542", "-el-port", "8080", "-el-security-context=true", "-el-events", "disable", "-el-readtimeout", "5", "-el-writetimeout", "40", "-el-idletimeout", "120", "-el-timeouthandler", "30", "-el-httpclient-readtimeout", "30", "-el-httpclient-keep-alive", "30", "-el-httpclient-tlshandshaketimeout", "10", "-el-httpclient-responseheadertimeout", "10", "-el-httpclient-expectcontinuetimeout", "1", "-period-seconds", "10", "-failure-threshold", "3"]
           env:
             - name: SYSTEM_NAMESPACE
               valueFrom:
@@ -1608,7 +1608,7 @@ spec:
         - name: webhook
           # This is the Go import path for the binary that is containerized
           # and substituted here.
-          image: "gcr.io/tekton-releases/github.com/tektoncd/triggers/cmd/webhook:v0.28.0@sha256:3f26d120a4ad8a8b45d219977e427f326f7e778439b80063afd6a148e5bc6940"
+          image: "ghcr.io/tektoncd/github.com/tektoncd/triggers/cmd/webhook:v0.28.0@sha256:3f26d120a4ad8a8b45d219977e427f326f7e778439b80063afd6a148e5bc6940"
           env:
             - name: SYSTEM_NAMESPACE
               valueFrom:
