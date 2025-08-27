@@ -67,6 +67,7 @@ spec:
   - name: docker-config
   - name: helm-source
   - name: ssh-directory
+  - name: nginx-config
   tasks:
   - name: validate-node-flux
     taskRef:
@@ -174,6 +175,8 @@ spec:
     workspaces:
       - name: source
         workspace: node-local-repo
+      - name: nginx-config
+        workspace: nginx-config
   - name: build-and-push-image
     runAfter:
       - create-nginx-dockerfile
