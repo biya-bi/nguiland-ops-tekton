@@ -162,9 +162,20 @@ spec:
         workspace: node-source
       - name: node-local-repo
         workspace: node-local-repo
-  - name: create-nginx-dockerfile
+  - name: get-nginx-config
     runAfter:
       - build-node-source
+    taskRef:
+      name: config-map
+    params:
+    - name: config-map-name
+      value: nginx-spa
+    workspaces:
+      - name: output
+        workspace: nginx-config
+  - name: create-nginx-dockerfile
+    runAfter:
+      - get-nginx-config
     taskRef:
       name: nginx-dockerfile
     params:
