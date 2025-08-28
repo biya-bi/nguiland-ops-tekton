@@ -1,0 +1,69 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: config-map
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Kubernetes
+    tekton.dev/tags: CLI, kubectl
+    tekton.dev/displayName: "ConfigMap"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This task retrieves values from a config map and places them into files. 
+    Each file has a name corresponding to a key in the config map, and a value corresponding to the key's value in the config map. 
+
+  results:
+    - name: output-dir
+  params:
+    - name: kubectl-image
+      default: gcr.io/cloud-builders/kubectl@sha256:8ab94be8b2b4f3d117f02d868b39540fddd225447abf4014f7ba4765cb39f753
+    - name: yq-image
+      default: docker.io/mikefarah/yq:4.44.2
+    - name: config-map-name
+  steps:
+    - name: get-config-map
+      image: $(params.kubectl-image)
+      script: |
+        #!/bin/bash
+
+        set -euo pipefail
+
+        config_maps_dir=/workspace/config-maps
+
+        mkdir -p "${config_maps_dir}"
+
+        config_map_name=$(params.config-map-name)
+
+        config_map_yaml="${config_maps_dir}/${config_map_name}.yaml"
+
+        kubectl get configmap "${config_map_name}" -n infra -o yaml > "${config_map_yaml}"
+
+        chmod 644 "${config_map_yaml}"
+
+        printf "The %s config map has been retrieved successfully.\n" "${config_map_name}"
+    - name: retrieve-content
+      image: $(params.yq-image)
+      script: |
+        #!/bin/sh
+
+        set -euo pipefail
+
+        output_dir=$(realpath $(mktemp -d))
+
+        config_maps_dir=/workspace/config-maps
+
+        config_map_name=$(params.config-map-name)
+
+        config_map_yaml="${config_maps_dir}/${config_map_name}.yaml"
+
+        yq '.data | to_entries[] | .key as $key | $key' "${config_map_yaml}" | while read -r key; do
+          yq ".data.\"${key}\"" "${config_map_yaml}" > "${output_dir}/${key}"
+        done
+
+        printf "%s" "${output_dir}" > $(results.output-dir.path)
+
+        printf "The config map's content has been placed in %s\n" "${output_dir}"
