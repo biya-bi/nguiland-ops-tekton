@@ -16,14 +16,14 @@ spec:
     This task retrieves values from a config map and places them into files. 
     Each file has a name corresponding to a key in the config map, and a value corresponding to the key's value in the config map. 
 
-  results:
-    - name: output-dir
   params:
     - name: kubectl-image
       default: gcr.io/cloud-builders/kubectl@sha256:8ab94be8b2b4f3d117f02d868b39540fddd225447abf4014f7ba4765cb39f753
     - name: yq-image
       default: docker.io/mikefarah/yq:4.44.2
     - name: config-map-name
+  workspaces:
+    - name: output
   steps:
     - name: get-config-map
       image: $(params.kubectl-image)
@@ -52,7 +52,7 @@ spec:
 
         set -euo pipefail
 
-        output_dir=$(realpath $(mktemp -d))
+        output_dir=$(workspaces.output.path)
 
         config_maps_dir=/workspace/config-maps
 
@@ -63,7 +63,5 @@ spec:
         yq '.data | to_entries[] | .key as $key | $key' "${config_map_yaml}" | while read -r key; do
           yq ".data.\"${key}\"" "${config_map_yaml}" > "${output_dir}/${key}"
         done
-
-        printf "%s" "${output_dir}" > $(results.output-dir.path)
 
         printf "The config map's content has been placed in %s\n" "${output_dir}"

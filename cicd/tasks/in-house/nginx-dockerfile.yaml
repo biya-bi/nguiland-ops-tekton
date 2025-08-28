@@ -26,14 +26,18 @@ spec:
   workspaces:
     - name: source
     - name: nginx-config
+      optional: true
   steps:
     - name: create
       image: $(params.alpine-image)
       workingDir: $(workspaces.source.path)/$(params.context-dir)
       script: |
-        cp $(workspaces.nginx-config.path)/nginx.conf .
-
         echo FROM $(params.nginx-image) > Dockerfile
         echo COPY $(params.distribution) /usr/share/nginx/html >> Dockerfile
-        echo COPY nginx.conf /etc/nginx/conf.d/default.conf >> Dockerfile
+
+        if [[ "$(workspaces.nginx-config.bound)" == "true" ]] && [[ -f $(workspaces.nginx-config.path)/nginx.conf ]]; then
+          cp -f $(workspaces.nginx-config.path)/nginx.conf .
+          echo COPY nginx.conf /etc/nginx/conf.d/default.conf >> Dockerfile
+        fi
+
         echo EXPOSE 80 >> Dockerfile
