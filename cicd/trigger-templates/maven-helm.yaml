@@ -29,6 +29,9 @@ spec:
       workspaces:
       - name: maven-source
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
@@ -43,6 +46,9 @@ spec:
           claimName: maven-local-repo
       - name: maven-flux-manifests
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
@@ -54,6 +60,9 @@ spec:
           secretName: docker-config
       - name: helm-source
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
