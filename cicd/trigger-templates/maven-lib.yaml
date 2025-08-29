@@ -25,6 +25,9 @@ spec:
       workspaces:
       - name: source
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
@@ -42,6 +45,9 @@ spec:
           secretName: ssh-credentials
       - name: flux-manifest-dir
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce

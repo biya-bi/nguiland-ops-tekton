@@ -31,6 +31,9 @@ spec:
       workspaces:
       - name: node-source
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
@@ -45,6 +48,9 @@ spec:
           claimName: node-local-repo
       - name: node-flux-manifests
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
@@ -56,6 +62,9 @@ spec:
           secretName: docker-config
       - name: helm-source
         volumeClaimTemplate:
+          metadata:
+            labels:
+              tekton.dev/pvc-protection-finalizer: remove
           spec:
             accessModes:
             - ReadWriteOnce
