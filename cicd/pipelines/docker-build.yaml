@@ -1,0 +1,127 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: docker-build
+  namespace: infra
+spec:
+  description: |
+    This pipeline does the following:
+      - Checks out a Git repository containing subdirectories.
+      - Builds a Docker image from the subdirectory given as a parameter.
+      - Pushes the built Docker image to an image registry.
+    It assumes the following:
+      - Each subdirectory represents a Docker image and should therefore contain a Dockerfile.
+      - The tag used while building the image is the content of the VERSION file contained in the subdirectory.
+      - Each subdirectory name is a valid Docker image name.
+  params:
+  - name: repo-url
+    type: string
+    default: ""
+    description: The Git repository URL. If empty, it will be retrieved from the Flux Git repository.
+  - name: repo-revision
+    type: string
+    default: "main"
+    description: The Git repository revision. If empty, it will be retrieved from the Flux Git repository.
+  - name: flux-gitrepo-namespace
+    type: string
+    default: ""
+    description: The namespace containing the Flux Git repository containing subdirectories.
+  - name: flux-gitrepo-name
+    type: string
+    default: ""
+    description: The name of the Flux Git repository containing subdirectories.
+  - name: context-dir
+    type: string
+    description: The subdirectory from which to launch the Docker build
+  - name: image-push-endpoint
+    default: artifactory-jcr.infra.svc.cluster.local:8082
+  - name: image-registry-repo
+    default: docker-local
+  - name: image-path
+    default: "org.nguiland.infra"
+    description: The path (under mage-registry-repo) in which the image will be published.
+  workspaces:
+  - name: source
+  - name: flux-manifests
+  - name: docker-config
+  - name: ssh-directory
+  tasks:
+  - name: validate-flux
+    taskRef:
+      name: git-flux-validation
+    params:
+    - name: url
+      value: $(params.repo-url)
+    - name: flux-gitrepo-namespace
+      value: $(params.flux-gitrepo-namespace)
+    - name: flux-gitrepo-name
+      value: $(params.flux-gitrepo-name)
+  - name: get-flux-gitrepo
+    runAfter:
+      - validate-flux
+    taskRef:
+      name: flux-git-repo
+    params:
+    - name: repository
+      value: $(params.flux-gitrepo-name)
+    - name: namespace
+      value: $(params.flux-gitrepo-namespace)
+    workspaces:
+    - name: manifest-dir
+      workspace: flux-manifests
+  - name: parse-flux
+    runAfter:
+      - get-flux-gitrepo
+    taskRef:
+      name: git-flux-parsing
+    params:
+    - name: url
+      value: $(params.repo-url)
+    - name: revision
+      value: $(params.repo-revision)
+    - name: manifest-file
+      value: $(tasks.get-flux-gitrepo.results.manifest-file)
+    workspaces:
+    - name: manifest-dir
+      workspace: flux-manifests
+  - name: fetch-source
+    runAfter:
+      - parse-flux
+    taskRef:
+      name: git-clone
+    params:
+    - name: url
+      value: $(tasks.parse-flux.results.url)
+    - name: revision
+      value: $(tasks.parse-flux.results.revision)
+    workspaces:
+    - name: output
+      workspace: source
+    - name: ssh-directory
+      workspace: ssh-directory
+  - name: get-version
+    runAfter:
+      - fetch-source
+    taskRef:
+      name: get-version-from-file
+    params:
+      - name: context-dir
+        value: $(params.context-dir)
+    workspaces:
+      - name: source
+        workspace: source     
+  - name: build-and-push-image
+    runAfter:
+      - get-version
+    taskRef:
+      name: kaniko
+    params:
+      - name: CONTEXT
+        value: $(params.context-dir)
+      - name: IMAGE
+        value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.image-path)/$(params.context-dir):$(tasks.get-version.results.version)
+    workspaces:
+      - name: source
+        workspace: source
+      - name: dockerconfig
+        workspace: docker-config
