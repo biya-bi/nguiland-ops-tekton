@@ -1,0 +1,46 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: get-version-from-file
+  namespace: infra
+spec:
+  description: >-
+    This task retrieves a version from a VERSION file.
+    The first line which if trimmed still contains non-white space characters determines the version returned.
+  workspaces:
+    - name: source
+  params:
+    - name: context-dir
+      type: string
+    - name: versionFile
+      type: string
+      default: VERSION
+      description: Name (or relative path) of the version file inside the context directory
+  results:
+    - name: version
+      description: The trimmed content of the first non-empty line from the VERSION file
+  steps:
+    - name: read-version
+      image: alpine:3.23
+      script: |
+        #!/bin/sh
+        set -e
+
+        FILE="$(workspaces.source.path)/$(params.context-dir)/$(params.versionFile)"
+
+        if [ ! -f "$FILE" ]; then
+          echo "Version file not found: $FILE" >&2
+          exit 1
+        fi
+
+        # Extract first non-empty trimmed line
+        VERSION=$(grep -v '^[[:space:]]*$' "$FILE" | \
+          sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
+          head -n 1)
+
+        if [ -z "$VERSION" ]; then
+          echo "Version file is empty or invalid: $FILE" >&2
+          exit 1
+        fi
+
+        echo -n "$VERSION" > $(results.version.path)
