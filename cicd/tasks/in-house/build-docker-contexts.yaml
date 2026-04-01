@@ -1,0 +1,82 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-docker-contexts
+  namespace: infra
+spec:
+  description: |
+    Detects changed directories and builds/pushes them using Kaniko.
+  workspaces:
+    - name: source
+      description: A directory containing the cloned Git repository.
+    - name: ssh-directory
+      description: |
+        A directory containing SSH configuration and keys for authenticating
+        with the git remote. This workspace is used to provide the necessary
+        SSH credentials for the git clone operation. Binding a Secret to this
+        Workspace is strongly recommended over other volume types.
+    - name: docker-config
+      description: Includes the config.json for registry authentication.
+      mountPath: /kaniko/.docker
+  params:
+    - name: registry
+      type: string
+      description: The container registry to which each image will be published.
+    - name: repository
+      type: string
+      description: The repository within the registry to which each image will be published.
+    - name: path
+      type: string
+      description: The path within the repository to which each image will be published.
+    - name: context-dir
+      type: string
+      default: "."
+      description: The subdirectory from which to launch the Docker build
+    - name: base-revision
+      default: ""
+      description: Base branch used for diff (PR-aware)
+  steps:
+    - name: build-and-push
+      # Use the Kaniko debug image because it contains a shell (/busybox/sh)
+      image: gcr.io/kaniko-project/executor:debug
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/busybox/sh
+        set -e
+        BASE="$(workspaces.source.path)"
+
+        is_valid() {
+          [ -d "$BASE/$1" ] && [ -f "$BASE/$1/Dockerfile" ] && [ -f "$BASE/$1/VERSION" ]
+        }
+
+        # Determine which directories to process
+        if [ "$(params.context-dir)" = "." ]; then
+            DIRS=$(ls -d */ 2>/dev/null | sed 's#/##')
+        else
+            DIRS="$(params.context-dir)"
+        fi
+
+        for DIR in $DIRS; do
+          if is_valid "$DIR"; then
+            echo "🚀 Processing directory: $DIR"
+            
+            # Read and clean version from file
+            VERSION=$(cat "$BASE/$DIR/VERSION" | tr -d '[:space:]' | sed 's/+/-/g')
+            IMAGE_PATH="$(params.registry)/$(params.repository)/$(params.path)/$DIR"
+
+            echo "📦 Building $IMAGE_PATH with tags: $VERSION and latest"
+
+            # --- 2. Kaniko Execution ---
+            # We call the executor binary directly for each valid directory
+            /kaniko/executor \
+              --context "$BASE/$DIR" \
+              --dockerfile "$BASE/$DIR/Dockerfile" \
+              --destination "$IMAGE_PATH:$VERSION" \
+              --destination "$IMAGE_PATH:latest" \
+              --digest-file="/tmp/digest-$DIR"
+
+            echo "✅ Successfully pushed $DIR"
+          else
+            echo "⏭️ Skipping $DIR (Invalid context)"
+          fi
+        done

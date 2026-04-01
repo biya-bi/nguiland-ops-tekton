@@ -1,0 +1,96 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: validate-docker-contexts
+  namespace: infra
+spec:
+  description: Validate that all Docker build directories have valid names
+  workspaces:
+    - name: source
+  params:
+    - name: context-dir
+      type: string
+      default: "."
+  steps:
+    - name: validate
+      image: alpine:3.23
+      script: |
+        #!/bin/sh
+        set -e
+
+        BASE="$(workspaces.source.path)"
+        INVALID=0
+
+        is_valid_name() {
+          echo "$1" | grep -Eq '^[a-z0-9._-]+$'
+        }
+
+        # Basic SemVer validation: 1.2.3 (no prefix like "v")
+        is_valid_semver() {
+          echo "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+        }
+
+        normalize_version() {
+          # Replace '+' (not safe in all Docker registries) with '-'
+          echo "$1" | sed 's/+/-/g'
+        }
+
+        check_dir() {
+          DIR="$1"
+
+          if [ -f "$BASE/$DIR/Dockerfile" ]; then
+            if ! is_valid_name "$DIR"; then
+              echo "❌ Invalid Docker image directory name: $DIR" >&2
+              INVALID=1
+            fi
+
+            # Enforce VERSION file presence
+            if [ ! -f "$BASE/$DIR/VERSION" ]; then
+              echo "❌ Missing VERSION file in: $DIR" >&2
+              INVALID=1
+            else
+              VERSION_FILE="$BASE/$DIR/VERSION"
+
+              # Extract first non-empty trimmed line
+              VERSION=$(grep -v '^[[:space:]]*$' "$VERSION_FILE" | \
+                sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
+                head -n 1)
+
+              if [ -z "$VERSION" ]; then
+                echo "❌ VERSION file is empty or invalid in: $DIR" >&2
+                INVALID=1
+              else
+                if ! is_valid_semver "$VERSION"; then
+                  echo "❌ Invalid semantic version in $DIR: $VERSION (expected SemVer, e.g. 1.2.3 or 1.2.3-alpha.1+build.5)" >&2
+                  INVALID=1
+                else
+                  NORMALIZED_VERSION=$(normalize_version "$VERSION")
+
+                  if [ "$VERSION" != "$NORMALIZED_VERSION" ]; then
+                    echo "ℹ️ Normalized version for Docker tag in $DIR: $VERSION → $NORMALIZED_VERSION"
+                  fi
+                fi
+              fi
+            fi
+          fi
+        }
+
+        if [ "$(params.context-dir)" = "." ]; then
+          for d in "$BASE"/*; do
+            if [ -d "$d" ]; then
+              DIR_NAME=$(basename "$d")
+              check_dir "$DIR_NAME"
+            fi
+          done
+        else
+          if [ -d "$BASE/$(params.context-dir)" ]; then
+            check_dir "$(params.context-dir)"
+          fi
+        fi
+
+        if [ "$INVALID" -ne 0 ]; then
+          echo "❌ Validation failed: invalid Docker context names found" >&2
+          exit 1
+        fi
+
+        echo "✅ All Docker context names are valid"
