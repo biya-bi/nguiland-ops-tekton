@@ -22,6 +22,9 @@ spec:
     type: string
     default: "main"
     description: The Git repository revision. If empty, it will be retrieved from the Flux Git repository.
+  - name: base-revision
+    default: ""
+    description: Base branch used for diff (PR-aware)
   - name: flux-gitrepo-namespace
     type: string
     default: ""
@@ -32,6 +35,7 @@ spec:
     description: The name of the Flux Git repository containing subdirectories.
   - name: context-dir
     type: string
+    default: "."
     description: The subdirectory from which to launch the Docker build
   - name: image-push-endpoint
     default: artifactory-jcr.infra.svc.cluster.local:8082
@@ -39,7 +43,7 @@ spec:
     default: docker-local
   - name: image-path
     default: "org.nguiland.infra"
-    description: The path (under mage-registry-repo) in which the image will be published.
+    description: The path (under image-registry-repo) in which the image will be published.
   workspaces:
   - name: source
   - name: flux-manifests
@@ -94,34 +98,44 @@ spec:
       value: $(tasks.parse-flux.results.url)
     - name: revision
       value: $(tasks.parse-flux.results.revision)
+    - name: depth
+      value: "0"
     workspaces:
     - name: output
       workspace: source
     - name: ssh-directory
       workspace: ssh-directory
-  - name: get-version
+  - name: validate-docker-contexts
     runAfter:
       - fetch-source
     taskRef:
-      name: get-version-from-file
+      name: validate-docker-contexts
     params:
       - name: context-dir
         value: $(params.context-dir)
     workspaces:
       - name: source
-        workspace: source     
-  - name: build-and-push-image
+        workspace: source
+  - name: build-docker-contexts
     runAfter:
-      - get-version
+      - validate-docker-contexts
     taskRef:
-      name: kaniko
+      name: build-docker-contexts
     params:
-      - name: CONTEXT
+      - name: registry
+        value: $(params.image-push-endpoint)
+      - name: repository
+        value: $(params.image-registry-repo)
+      - name: path
+        value: $(params.image-path)
+      - name: context-dir
         value: $(params.context-dir)
-      - name: IMAGE
-        value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.image-path)/$(params.context-dir):$(tasks.get-version.results.version)
+      - name: base-revision
+        value: $(params.base-revision)
     workspaces:
       - name: source
         workspace: source
-      - name: dockerconfig
+      - name: ssh-directory
+        workspace: ssh-directory
+      - name: docker-config
         workspace: docker-config
