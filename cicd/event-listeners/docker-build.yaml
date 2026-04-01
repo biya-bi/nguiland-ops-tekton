@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: docker-build
+  namespace: infra
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: docker-build
+      bindings:
+      - ref: docker-build
+      template:
+        ref: docker-build
