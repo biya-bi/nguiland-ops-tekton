@@ -51,6 +51,11 @@ spec:
         if [ "$ALWAYS_BUILD" = "true" ]; then
           echo "🔍 'always-build' is enabled. Finding all valid contexts..."
           DIRS=$(ls -d */ 2>/dev/null | sed 's#/##')
+
+          # Show warning if no subdirectories are found
+          if [ -z "$DIRS" ]; then
+            echo "⚠️ Warning: 'always-build' is true, but no subdirectories were found in $(pwd)"
+          fi
         else
           # Use the list passed from the detection task
           DIRS="$INPUT_VAL"
