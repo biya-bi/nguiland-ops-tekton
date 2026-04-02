@@ -1,0 +1,114 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: detect-changed-docker-contexts
+  namespace: infra
+spec:
+  description: Detect directories (contain a Dockerfile) that have changes
+  workspaces:
+    - name: source
+      description: A directory containing the cloned Git repository.
+  params:
+    - name: context-dir
+      type: string
+      default: "."
+    - name: base-revision
+      description: Git base revision to compare against (e.g. origin/main)
+      default: ""
+    - name: always-build
+      type: string
+      default: "false"
+      description: If true, skips detection.
+  results:
+    - name: contexts
+      description: Changed directories containing Dockerfile or a dot if no changes.
+  steps:
+    - name: detect
+      image: alpine/git:v2.45.2
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -e
+
+        OUTPUT_FILE="$(results.contexts.path)"
+
+        if [ "$(params.always-build)" = "true" ]; then
+          echo "." > "$OUTPUT_FILE"
+          exit 0
+        fi
+
+        BASE="$(workspaces.source.path)"
+        git config --global --add safe.directory "$BASE"
+
+        ########################################
+        # Determine base revision dynamically
+        ########################################
+        BASE_REV=""
+
+        # Priority 1: Explicit param override
+        if [ -n "$(params.base-revision)" ]; then
+          BASE_REV="$(params.base-revision)"
+          echo "Using base revision from param: $BASE_REV"
+
+        # Priority 2: GitHub PR
+        elif [ -n "$GITHUB_BASE_REF" ]; then
+          BASE_REV="origin/$GITHUB_BASE_REF"
+          echo "Detected GitHub PR base branch: $BASE_REV"
+
+        # Priority 3: GitLab MR
+        elif [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ]; then
+          BASE_REV="origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+          echo "Detected GitLab MR target branch: $BASE_REV"
+
+        # Fallback
+        else
+          BASE_REV="origin/main"
+          echo "Falling back to default base branch: $BASE_REV"
+        fi
+
+        ########################################
+        # Fetch base branch
+        ########################################
+        echo "Fetching base revision..."
+        git fetch origin || true
+
+        ########################################
+        # Detect changed files
+        ########################################
+        echo "Detecting changed files..."
+
+        if git rev-parse "$BASE_REV" >/dev/null 2>&1; then
+          git diff --name-only "$BASE_REV"...HEAD > /tmp/changed_files.txt
+        else
+          echo "Base revision not found, skipping diff"
+          touch /tmp/changed_files.txt
+        fi
+
+        # Filter valid Docker contexts
+        TMP_FINAL="/tmp/final_list.txt"
+        > "$TMP_FINAL"
+
+        if [ -s /tmp/changed_files.txt ]; then
+          # Extract unique top-level directories
+          DIRS=$(cat /tmp/changed_files.txt | cut -d/ -f1 | sort -u)
+          for DIR in $DIRS; do
+            if [ "$(params.context-dir)" != "." ] && [ "$DIR" != "$(params.context-dir)" ]; then
+              continue
+            fi
+
+            if [ -d "$BASE/$DIR" ] && [ -f "$BASE/$DIR/Dockerfile" ]; then
+              echo "$DIR" >> "$TMP_FINAL"
+            fi
+          done
+        fi
+
+        ########################################
+        # Final result
+        ########################################
+        if [ ! -s "$TMP_FINAL" ]; then
+          echo "No changed Docker build contexts found. Returning '.'"
+          echo -n "." > "$OUTPUT_FILE"
+        else
+          echo "Changed contexts found:"
+          cat "$TMP_FINAL" | tee "$OUTPUT_FILE"
+        fi
