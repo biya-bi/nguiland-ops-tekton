@@ -38,11 +38,11 @@ spec:
         set -eou
         BASE="$(workspaces.source.path)"
 
-        INPUT_VAL="$(params.changed-dirs)"
+        CHANGED_DIRS="$(params.changed-dirs)"
         ALWAYS_BUILD="$(params.always-build)"
 
         # 1. Exit only if there are no changes AND always-build is false
-        if [ "$INPUT_VAL" = "." ] && [ "$ALWAYS_BUILD" != "true" ]; then
+        if [ "$CHANGED_DIRS" = "." ] && [ "$ALWAYS_BUILD" != "true" ]; then
           echo "✅ No changes to process. Exiting."
           exit 0
         fi
@@ -58,7 +58,7 @@ spec:
           fi
         else
           # Use the list passed from the detection task
-          DIRS="$INPUT_VAL"
+          DIRS="$CHANGED_DIRS"
         fi
 
         is_valid() {
