@@ -149,8 +149,6 @@ spec:
         value: $(params.image-registry-repo)
       - name: path
         value: $(params.image-path)
-      - name: base-revision
-        value: $(params.base-revision)
       - name: always-build
         value: $(params.always-build)
       - name: changed-dirs
@@ -158,7 +156,5 @@ spec:
     workspaces:
       - name: source
         workspace: source
-      - name: ssh-directory
-        workspace: ssh-directory
       - name: docker-config
         workspace: docker-config
