@@ -8,6 +8,10 @@ spec:
   workspaces:
     - name: source
       description: A directory containing the cloned Git repository.
+    - name: ssh-directory
+      description: |
+        A directory containing SSH configuration and keys for authenticating
+        with the git remote.
   params:
     - name: context-dir
       type: string
@@ -35,6 +39,44 @@ spec:
         if [ "$(params.always-build)" = "true" ]; then
           echo "." > "$OUTPUT_FILE"
           exit 0
+        fi
+
+        ########################################
+        # Setup SSH key dynamically
+        ########################################
+        if [ "$(workspaces.ssh-directory.bound)" = "true" ]; then
+          echo "🔐 Configuring SSH key..."
+
+          SSH_DIR="$(workspaces.ssh-directory.path)"
+          TMP_SSH_DIR="/tmp/.ssh"
+
+          mkdir -p "$TMP_SSH_DIR"
+          chmod 700 "$TMP_SSH_DIR"
+
+          # Find a private key (exclude known_hosts)
+          KEY_FILE=$(find "$SSH_DIR" -type f ! -name "known_hosts" | head -n 1)
+
+          if [ -z "$KEY_FILE" ]; then
+            echo "❌ No SSH private key found in workspace" >&2
+            exit 1
+          fi
+
+          # Copy key to a safe location and fix permissions
+          cp "$KEY_FILE" "$TMP_SSH_DIR/id_rsa"
+          chmod 600 "$TMP_SSH_DIR/id_rsa"
+
+          # Handle known_hosts safely
+          if [ -f "$SSH_DIR/known_hosts" ]; then
+            cp "$SSH_DIR/known_hosts" "$TMP_SSH_DIR/known_hosts"
+            chmod 644 "$TMP_SSH_DIR/known_hosts"
+
+            export GIT_SSH_COMMAND="ssh -i $TMP_SSH_DIR/id_rsa -o User=git -o UserKnownHostsFile=$TMP_SSH_DIR/known_hosts -o StrictHostKeyChecking=yes"
+          else
+            echo "⚠️ No known_hosts found, disabling host key checking"
+            export GIT_SSH_COMMAND="ssh -i $TMP_SSH_DIR/id_rsa -o User=git -o StrictHostKeyChecking=no"
+          fi
+        else
+          echo "⚠️ No ssh-directory workspace bound"
         fi
 
         BASE="$(workspaces.source.path)"

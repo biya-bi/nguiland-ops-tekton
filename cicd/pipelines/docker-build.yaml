@@ -135,6 +135,8 @@ spec:
     workspaces:
     - name: source
       workspace: source
+    - name: ssh-directory
+      workspace: ssh-directory
   - name: build-docker-contexts
     runAfter:
       - detect-changed-docker-contexts
