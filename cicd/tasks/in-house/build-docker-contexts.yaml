@@ -12,9 +12,7 @@ spec:
     - name: ssh-directory
       description: |
         A directory containing SSH configuration and keys for authenticating
-        with the git remote. This workspace is used to provide the necessary
-        SSH credentials for the git clone operation. Binding a Secret to this
-        Workspace is strongly recommended over other volume types.
+        with the git remote.
     - name: docker-config
       description: Includes the config.json for registry authentication.
       mountPath: /kaniko/.docker
@@ -28,55 +26,62 @@ spec:
     - name: path
       type: string
       description: The path within the repository to which each image will be published.
-    - name: context-dir
+    - name: changed-dirs
       type: string
-      default: "."
-      description: The subdirectory from which to launch the Docker build
+      description: The list of changed directories to process, or a dot if all should be processed.
+    - name: always-build
+      type: string
+      default: "false"
+      description: If true, builds all valid subdirectories.
     - name: base-revision
       default: ""
       description: Base branch used for diff (PR-aware)
   steps:
     - name: build-and-push
-      # Use the Kaniko debug image because it contains a shell (/busybox/sh)
       image: gcr.io/kaniko-project/executor:debug
       workingDir: $(workspaces.source.path)
       script: |
         #!/busybox/sh
-        set -e
+        set -eou
         BASE="$(workspaces.source.path)"
+
+        INPUT_VAL="$(params.changed-dirs)"
+        ALWAYS_BUILD="$(params.always-build)"
+
+        # 1. Exit only if there are no changes AND always-build is false
+        if [ "$INPUT_VAL" = "." ] && [ "$ALWAYS_BUILD" != "true" ]; then
+          echo "✅ No changes to process. Exiting."
+          exit 0
+        fi
+
+        # 2. Define which directories to iterate over
+        if [ "$ALWAYS_BUILD" = "true" ]; then
+          echo "🔍 'always-build' is enabled. Finding all valid contexts..."
+          DIRS=$(ls -d */ 2>/dev/null | sed 's#/##')
+        else
+          # Use the list passed from the detection task
+          DIRS="$INPUT_VAL"
+        fi
 
         is_valid() {
           [ -d "$BASE/$1" ] && [ -f "$BASE/$1/Dockerfile" ] && [ -f "$BASE/$1/VERSION" ]
         }
 
-        # Determine which directories to process
-        if [ "$(params.context-dir)" = "." ]; then
-            DIRS=$(ls -d */ 2>/dev/null | sed 's#/##')
-        else
-            DIRS="$(params.context-dir)"
-        fi
-
         for DIR in $DIRS; do
           if is_valid "$DIR"; then
             echo "🚀 Processing directory: $DIR"
-            
-            # Read and clean version from file
             VERSION=$(cat "$BASE/$DIR/VERSION" | tr -d '[:space:]' | sed 's/+/-/g')
             IMAGE_PATH="$(params.registry)/$(params.repository)/$(params.path)/$DIR"
 
-            echo "📦 Building $IMAGE_PATH with tags: $VERSION and latest"
-
-            # --- 2. Kaniko Execution ---
-            # We call the executor binary directly for each valid directory
             /kaniko/executor \
               --context "$BASE/$DIR" \
               --dockerfile "$BASE/$DIR/Dockerfile" \
               --destination "$IMAGE_PATH:$VERSION" \
-              --destination "$IMAGE_PATH:latest" \
-              --digest-file="/tmp/digest-$DIR"
-
-            echo "✅ Successfully pushed $DIR"
+              --destination "$IMAGE_PATH:latest"
           else
-            echo "⏭️ Skipping $DIR (Invalid context)"
+            # Only show skip message if we were expecting a specific directory to work
+            if [ "$ALWAYS_BUILD" != "true" ]; then
+              echo "⏭️ Skipping $DIR (Missing Dockerfile or VERSION)"
+            fi
           fi
         done

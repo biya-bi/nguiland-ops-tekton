@@ -25,6 +25,10 @@ spec:
   - name: base-revision
     default: ""
     description: Base branch used for diff (PR-aware)
+  - name: always-build
+    type: string
+    default: "false"
+    description: If true, skips detection and builds all valid subdirectories.
   - name: flux-gitrepo-namespace
     type: string
     default: ""
@@ -116,9 +120,24 @@ spec:
     workspaces:
       - name: source
         workspace: source
-  - name: build-docker-contexts
+  - name: detect-changed-docker-contexts
     runAfter:
       - validate-docker-contexts
+    taskRef:
+      name: detect-changed-docker-contexts
+    params:
+    - name: context-dir
+      value: $(params.context-dir)
+    - name: base-revision
+      value: $(params.base-revision)
+    - name: always-build
+      value: $(params.always-build)
+    workspaces:
+    - name: source
+      workspace: source
+  - name: build-docker-contexts
+    runAfter:
+      - detect-changed-docker-contexts
     taskRef:
       name: build-docker-contexts
     params:
@@ -128,10 +147,12 @@ spec:
         value: $(params.image-registry-repo)
       - name: path
         value: $(params.image-path)
-      - name: context-dir
-        value: $(params.context-dir)
       - name: base-revision
         value: $(params.base-revision)
+      - name: always-build
+        value: $(params.always-build)
+      - name: changed-dirs
+        value: $(tasks.detect-changed-docker-contexts.results.contexts)
     workspaces:
       - name: source
         workspace: source
