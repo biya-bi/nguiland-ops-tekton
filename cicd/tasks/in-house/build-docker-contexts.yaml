@@ -9,10 +9,6 @@ spec:
   workspaces:
     - name: source
       description: A directory containing the cloned Git repository.
-    - name: ssh-directory
-      description: |
-        A directory containing SSH configuration and keys for authenticating
-        with the git remote.
     - name: docker-config
       description: Includes the config.json for registry authentication.
       mountPath: /kaniko/.docker
@@ -33,9 +29,6 @@ spec:
       type: string
       default: "false"
       description: If true, builds all valid subdirectories.
-    - name: base-revision
-      default: ""
-      description: Base branch used for diff (PR-aware)
   steps:
     - name: build-and-push
       image: gcr.io/kaniko-project/executor:debug
