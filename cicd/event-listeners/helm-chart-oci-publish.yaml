@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: helm-chart-oci-publish
+  namespace: infra
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: helm-chart-oci-publish
+      bindings:
+        - ref: helm-chart-oci-publish
+      template:
+        ref: helm-chart-oci-publish

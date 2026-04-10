@@ -1,0 +1,76 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: helm-chart-oci-publish
+  namespace: infra
+spec:
+  description: >-
+    Checkout a Helm chart repository and publish Helm chart packages
+    to the configured OCI registry.
+  params:
+    - name: namespace
+      type: string
+    - name: repository
+      type: string
+    - name: helm-charts-dir
+      default: charts
+    - name: helm-registry
+      default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+  workspaces:
+    - name: helm-source
+    - name: manifest-dir
+    - name: docker-config
+    - name: ssh-directory
+  tasks:
+    - name: get-helm-gitrepo
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.repository)
+        - name: namespace
+          value: $(params.namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: manifest-dir
+    - name: parse-helm-gitrepo
+      runAfter:
+        - get-helm-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: manifest-file
+          value: $(tasks.get-helm-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: manifest-dir
+    - name: fetch-helm-source
+      runAfter:
+        - parse-helm-gitrepo
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(tasks.parse-helm-gitrepo.results.url)
+        - name: revision
+          value: $(tasks.parse-helm-gitrepo.results.revision)
+      workspaces:
+        - name: output
+          workspace: helm-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: publish-helm-charts
+      runAfter:
+        - fetch-helm-source
+      taskRef:
+        name: helm-chart-oci-publish
+      params:
+        - name: helm-charts-dir
+          value: $(params.helm-charts-dir)
+        - name: helm-registry
+          value: $(params.helm-registry)
+      workspaces:
+        - name: source
+          workspace: helm-source
+        - name: docker-config
+          workspace: docker-config

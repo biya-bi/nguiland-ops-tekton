@@ -1,0 +1,78 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: helm-chart-oci-publish
+  namespace: infra
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Build
+    tekton.dev/tags: helm,oci
+    tekton.dev/displayName: "Helm chart OCI publish"
+spec:
+  description: >-
+    Package Helm chart directories and push them to an OCI registry using
+    Docker credentials mounted via the docker-config workspace.
+  params:
+    - name: helm-charts-dir
+      default: charts
+    - name: helm-registry
+      default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+  workspaces:
+    - name: source
+    - name: docker-config
+      optional: true
+  steps:
+    - name: prepare-docker-config
+      image: docker.io/library/bash:5.1.4@sha256:c523c636b722339f41b6a431b44588ab2f762c5de5ec3bd7964420ff982fb1d9
+      script: |
+        set -euo pipefail
+
+        mkdir -p /tekton/home/.docker
+
+        if [ -d "$(workspaces.docker-config.path)" ]; then
+          cp -R "$(workspaces.docker-config.path)"/* /tekton/home/.docker/ || true
+        fi
+
+        chmod 700 /tekton/home/.docker
+        if [ -f /tekton/home/.docker/config.json ]; then
+          echo "docker config loaded"
+        fi
+    - name: publish-helm-charts
+      image: alpine/helm:3.14.0
+      env:
+        - name: HOME
+          value: /tekton/home
+      workingDir: $(workspaces.source.path)
+      script: |
+        set -euo pipefail
+
+        charts_dir="$(workspaces.source.path)/$(params.helm-charts-dir)"
+
+        if [ ! -d "${charts_dir}" ]; then
+          echo "charts directory does not exist: ${charts_dir}"
+          exit 1
+        fi
+
+        pushed=0
+        for chart in "${charts_dir}"/*; do
+          if [ -d "${chart}" ] && [ -f "${chart}/Chart.yaml" ]; then
+            name=$(grep -m1 '^name:' "${chart}/Chart.yaml" | sed 's/^name:[[:space:]]*//')
+            version=$(grep -m1 '^version:' "${chart}/Chart.yaml" | sed 's/^version:[[:space:]]*//')
+            if [ -z "${name}" ] || [ -z "${version}" ]; then
+              echo "invalid Chart.yaml in ${chart}"
+              exit 1
+            fi
+            ref="$(params.helm-registry)/${name}:${version}"
+            echo "Publishing chart ${chart} -> ${ref}"
+            helm chart save "${chart}" "${ref}"
+            helm chart push "${ref}"
+            pushed=$((pushed + 1))
+          fi
+        done
+
+        if [ "${pushed}" -eq 0 ]; then
+          echo "No chart directories found in ${charts_dir}"
+          exit 1
+        fi

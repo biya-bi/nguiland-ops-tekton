@@ -1,0 +1,15 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: helm-chart-oci-publish
+  namespace: infra
+spec:
+  params:
+    - name: namespace
+      value: $(body.involvedObject.namespace)
+    - name: repository
+      value: $(body.involvedObject.name)
+    - name: helm-charts-dir
+      value: $(body.metadata.helmChartsDir)
+    - name: helm-registry
+      value: $(body.metadata.helmRegistry)
