@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: wait-for-pod-ready
+  namespace: infra
+  labels:
+    app.kubernetes.io/name: wait-for-pod-ready
+    app.kubernetes.io/part-of: tekton
+spec:
+  description: "Wait for a pod matching a label selector to become ready."
+  params:
+    - name: namespace
+      type: string
+      description: "Kubernetes namespace of the pod to wait for"
+    - name: selector
+      type: string
+      description: "Label selector to identify the pod(s) to wait for"
+    - name: timeout
+      type: string
+      default: "10m"
+      description: "Timeout for waiting for the pod readiness condition"
+  steps:
+    - name: wait
+      image: bitnami/kubectl:1.27.0
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "Waiting for pod(s) with selector: $(params.selector) in namespace: $(params.namespace)"
+        kubectl wait --for=condition=Ready pod -l "$(params.selector)" -n "$(params.namespace)" --timeout="$(params.timeout)"
