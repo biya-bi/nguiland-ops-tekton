@@ -61,11 +61,11 @@ spec:
           workspace: helm-source
         - name: ssh-directory
           workspace: ssh-directory
-    - name: wait-for-pod-ready
+    - name: wait-for-deployment-ready
       runAfter:
         - fetch-helm-source
       taskRef:
-        name: wait-for-pod-ready
+        name: wait-for-deployment-ready
       params:
         - name: namespace
           value: infra
@@ -75,7 +75,7 @@ spec:
           value: $(params.artifactory-readiness-timeout)
     - name: publish-helm-charts
       runAfter:
-        - wait-for-pod-ready
+        - wait-for-deployment-ready
       taskRef:
         name: helm-chart-oci-publish
       params:

@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: wait-for-deployment-ready
+  namespace: infra
+  labels:
+    app.kubernetes.io/name: wait-for-deployment-ready
+    app.kubernetes.io/part-of: tekton
+spec:
+  description: "Wait for a deployment matching a label selector to become available."
+  params:
+    - name: namespace
+      type: string
+      description: "Kubernetes namespace of the deployment to wait for"
+    - name: selector
+      type: string
+      description: "Label selector to identify the deployment(s) to wait for"
+    - name: timeout
+      type: string
+      default: "10m"
+      description: "Timeout for waiting for the deployment availability condition"
+  steps:
+    - name: wait
+      image: bitnami/kubectl:1.27.0
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "Waiting for deployment(s) with selector: $(params.selector) in namespace: $(params.namespace)"
+        kubectl wait --for=condition=available deployment -l "$(params.selector)" -n "$(params.namespace)" --timeout="$(params.timeout)"
