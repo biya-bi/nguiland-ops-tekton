@@ -19,6 +19,10 @@ spec:
       default: charts
     - name: helm-registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+    - name: skipTls
+      type: string
+      default: "false"
+      description: "Whether to skip TLS verification and use plain HTTP for the OCI registry."
   workspaces:
     - name: source
     - name: docker-config
@@ -48,6 +52,11 @@ spec:
       script: |
         set -euo pipefail
 
+        push_opts=""
+        if [ "$(params.skipTls)" = "true" ]; then
+          push_opts="--plain-http"
+        fi
+
         charts_dir="$(workspaces.source.path)/$(params.helm-charts-dir)"
 
         if [ ! -d "${charts_dir}" ]; then
@@ -67,7 +76,7 @@ spec:
 
             echo "Publishing chart ${name}:${version} to $(params.helm-registry)"
             helm package "${chart}" --destination .
-            helm push "${name}-${version}.tgz" "$(params.helm-registry)"
+            helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
             rm "${name}-${version}.tgz"
             pushed=$((pushed + 1))
           fi
