@@ -18,6 +18,9 @@ spec:
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
     - name: artifactory-readiness-timeout
       default: 10m
+    - name: skipTls
+      type: string
+      default: "false"
   workspaces:
     - name: helm-source
     - name: manifest-dir
@@ -83,6 +86,8 @@ spec:
           value: $(params.helm-charts-dir)
         - name: helm-registry
           value: $(params.helm-registry)
+        - name: skipTls
+          value: $(params.skipTls)
       workspaces:
         - name: source
           workspace: helm-source
