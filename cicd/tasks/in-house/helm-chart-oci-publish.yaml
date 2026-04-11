@@ -36,7 +36,7 @@ spec:
         mkdir -p /tekton/home/.docker
 
         if [ -d "$(workspaces.docker-config.path)" ]; then
-          cp -R "$(workspaces.docker-config.path)"/* /tekton/home/.docker/ || true
+          cp -RL "$(workspaces.docker-config.path)/." /tekton/home/.docker/ || true
         fi
 
         # K8s secrets of type dockerconfigjson provide a .dockerconfigjson file.
@@ -47,7 +47,7 @@ spec:
 
         chmod 700 /tekton/home/.docker
         if [ -f /tekton/home/.docker/config.json ]; then
-          echo "docker config loaded"
+          echo "✅ Docker configuration successfully loaded into /tekton/home/.docker/config.json"
         fi
     - name: publish-helm-charts
       image: alpine/helm:3.14.0
