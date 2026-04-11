@@ -13,7 +13,7 @@ spec:
     - name: repository
       type: string
     - name: helm-charts-dir
-      default: charts
+      default: addons
     - name: helm-registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
   workspaces:
