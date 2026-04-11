@@ -64,10 +64,11 @@ spec:
               echo "invalid Chart.yaml in ${chart}"
               exit 1
             fi
-            ref="$(params.helm-registry)/${name}:${version}"
-            echo "Publishing chart ${chart} -> ${ref}"
-            helm chart save "${chart}" "${ref}"
-            helm chart push "${ref}"
+
+            echo "Publishing chart ${name}:${version} to $(params.helm-registry)"
+            helm package "${chart}" --destination .
+            helm push "${name}-${version}.tgz" "$(params.helm-registry)"
+            rm "${name}-${version}.tgz"
             pushed=$((pushed + 1))
           fi
         done
