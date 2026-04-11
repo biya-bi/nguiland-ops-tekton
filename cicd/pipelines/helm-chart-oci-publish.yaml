@@ -16,6 +16,8 @@ spec:
       default: addons
     - name: helm-registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+    - name: artifactory-readiness-timeout
+      default: 10m
   workspaces:
     - name: helm-source
     - name: manifest-dir
@@ -59,9 +61,21 @@ spec:
           workspace: helm-source
         - name: ssh-directory
           workspace: ssh-directory
-    - name: publish-helm-charts
+    - name: wait-for-pod-ready
       runAfter:
         - fetch-helm-source
+      taskRef:
+        name: wait-for-pod-ready
+      params:
+        - name: namespace
+          value: infra
+        - name: selector
+          value: app.kubernetes.io/instance=artifactory-jcr
+        - name: timeout
+          value: $(params.artifactory-readiness-timeout)
+    - name: publish-helm-charts
+      runAfter:
+        - wait-for-pod-ready
       taskRef:
         name: helm-chart-oci-publish
       params:
