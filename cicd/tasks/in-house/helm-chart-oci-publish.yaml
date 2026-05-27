@@ -84,6 +84,7 @@ spec:
 
             echo "Publishing chart ${name}:${version} to $(params.helm-registry)"
             helm dependency build "${chart}"
+            helm lint "${chart}"
             helm package "${chart}" --destination .
             helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
             rm "${name}-${version}.tgz"
