@@ -83,10 +83,19 @@ spec:
             fi
 
             echo "Publishing chart ${name}:${version} to $(params.helm-registry)"
+
+            echo "▶ Building dependencies..."
             helm dependency build "${chart}"
+
+            echo "▶ Linting and validating chart schema..."
             helm lint "${chart}"
+
+            echo "▶ Packaging chart..."
             helm package "${chart}" --destination .
+
+            echo "▶ Pushing package to OCI registry..."
             helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
+
             rm "${name}-${version}.tgz"
             pushed=$((pushed + 1))
           fi
