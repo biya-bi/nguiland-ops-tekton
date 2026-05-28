@@ -50,7 +50,7 @@ spec:
           echo "✅ Docker configuration successfully loaded into /tekton/home/.docker/config.json"
         fi
     - name: publish-helm-charts
-      image: alpine/helm:3.14.0
+      image: alpine/helm:3.20.2
       env:
         - name: HOME
           value: /tekton/home
