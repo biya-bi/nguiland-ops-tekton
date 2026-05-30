@@ -21,6 +21,11 @@ spec:
     - name: skipTls
       type: string
       default: "false"
+    - name: excluded-charts
+      type: string
+      default: ""
+      description: >-
+        Space-separated list of chart names to exclude (based on 'name' field in Chart.yaml).
   workspaces:
     - name: helm-source
     - name: manifest-dir
@@ -88,6 +93,8 @@ spec:
           value: $(params.helm-registry)
         - name: skipTls
           value: $(params.skipTls)
+        - name: excluded-charts
+          value: $(params.excluded-charts)
       workspaces:
         - name: source
           workspace: helm-source
