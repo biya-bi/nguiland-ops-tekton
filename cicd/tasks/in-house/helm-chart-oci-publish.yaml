@@ -23,6 +23,11 @@ spec:
       type: string
       default: "false"
       description: "Whether to skip TLS verification and use plain HTTP for the OCI registry."
+    - name: excluded-charts
+      type: string
+      default: ""
+      description: >-
+        Space-separated list of chart names to exclude (based on 'name' field in Chart.yaml).
   workspaces:
     - name: source
     - name: docker-config
@@ -72,36 +77,60 @@ spec:
           exit 1
         fi
 
-        pushed=0
-        for chart in "${charts_dir}"/*; do
-          if [ -d "${chart}" ] && [ -f "${chart}/Chart.yaml" ]; then
-            name=$(grep -m1 '^name:' "${chart}/Chart.yaml" | sed 's/^name:[[:space:]]*//')
-            version=$(grep -m1 '^version:' "${chart}/Chart.yaml" | sed 's/^version:[[:space:]]*//')
-            if [ -z "${name}" ] || [ -z "${version}" ]; then
-              echo "invalid Chart.yaml in ${chart}"
-              exit 1
-            fi
+        # Track pushes via file to handle subshell scoping in 'while read'
+        echo 0 > /tmp/pushed_count
+        excluded_charts=" $(params.excluded-charts) "
 
-            echo "Publishing chart ${name}:${version} to $(params.helm-registry)"
+        echo "🔍 Searching for Helm charts in ${charts_dir}..."
 
-            echo "▶ Building dependencies..."
-            helm dependency build "${chart}"
+        # Find all Chart.yaml files recursively. Does not follow symbolic links by default.
+        find "${charts_dir}" -name "Chart.yaml" > /tmp/found_charts
 
-            echo "▶ Linting and validating chart schema..."
-            helm lint "${chart}"
+        while read -r chart_yaml; do
+          chart_dir=$(dirname "${chart_yaml}")
 
-            echo "▶ Packaging chart..."
-            helm package "${chart}" --destination .
-
-            echo "▶ Pushing package to OCI registry..."
-            helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
-
-            rm "${name}-${version}.tgz"
-            pushed=$((pushed + 1))
+          # 1. Skip if the directory itself is a symbolic link to avoid loops
+          if [ -L "${chart_dir}" ]; then
+            echo "⏭️  Skipping symbolic link: ${chart_dir}"
+            continue
           fi
-        done
 
+          name=$(grep -m1 '^name:' "${chart_yaml}" | sed 's/^name:[[:space:]]*//' | tr -d '\r')
+          version=$(grep -m1 '^version:' "${chart_yaml}" | sed 's/^version:[[:space:]]*//' | tr -d '\r')
+
+          if [ -z "${name}" ] || [ -z "${version}" ]; then
+            echo "⚠️  Skipping invalid Chart.yaml at ${chart_yaml}"
+            continue
+          fi
+
+          # 2. Check against the excluded charts
+          case " ${excluded_charts} " in
+            *" ${name} "*)
+              echo "⏭️  Excluding chart per excluded-charts parameter: ${name}"
+              continue
+              ;;
+          esac
+
+          echo "🚀 Publishing ${name}:${version} (Source: ${chart_dir})"
+
+          echo "▶ Building dependencies..."
+          helm dependency build "${chart_dir}"
+
+          echo "▶ Linting and validating chart schema..."
+          helm lint "${chart_dir}"
+
+          echo "▶ Packaging chart..."
+          helm package "${chart_dir}" --destination .
+
+          echo "▶ Pushing package to OCI registry..."
+          helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
+
+          rm "${name}-${version}.tgz"
+
+          echo $(( $(cat /tmp/pushed_count) + 1 )) > /tmp/pushed_count
+        done < /tmp/found_charts
+
+        pushed=$(cat /tmp/pushed_count)
         if [ "${pushed}" -eq 0 ]; then
-          echo "No chart directories found in ${charts_dir}"
-          exit 1
+          echo "❌ No legitimate chart directories found to publish."
         fi
