@@ -11,6 +11,8 @@ spec:
       default: charts
     - name: helm-registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+    - name: excluded-charts
+      default: "artifactory-jcr chart-repository"
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -62,3 +64,5 @@ spec:
             value: $(tt.params.helm-charts-dir)
           - name: helm-registry
             value: $(tt.params.helm-registry)
+          - name: excluded-charts
+            value: $(tt.params.excluded-charts)
