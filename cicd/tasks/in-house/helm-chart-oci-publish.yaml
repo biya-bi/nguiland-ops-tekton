@@ -111,16 +111,19 @@ spec:
               ;;
           esac
 
-          echo "🚀 Publishing ${name}:${version} (Source: ${chart_dir})"
+          echo "Changing to directory ${chart_dir}"
+          cd "${chart_dir}"
+
+          echo "🚀 Publishing ${name}:${version}"
 
           echo "▶ Building dependencies..."
-          helm dependency build "${chart_dir}"
+          helm dependency build .
 
           echo "▶ Linting and validating chart schema..."
-          helm lint "${chart_dir}"
+          helm lint .
 
           echo "▶ Packaging chart..."
-          helm package "${chart_dir}" --destination .
+          helm package . --destination .
 
           echo "▶ Pushing package to OCI registry..."
           helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
