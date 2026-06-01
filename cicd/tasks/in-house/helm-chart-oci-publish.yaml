@@ -70,12 +70,12 @@ spec:
           push_opts="--plain-http"
         fi
 
-        charts_dir="$(workspaces.source.path)/$(params.helm-charts-dir)"
-
-        if [ ! -d "${charts_dir}" ]; then
-          echo "charts directory does not exist: ${charts_dir}"
+        raw_charts_dir="$(workspaces.source.path)/$(params.helm-charts-dir)"
+        if [ ! -d "${raw_charts_dir}" ]; then
+          echo "Charts directory does not exist: ${raw_charts_dir}"
           exit 1
         fi
+        charts_dir="$(cd "${raw_charts_dir}" && pwd)"
 
         # Track pushes via file to handle subshell scoping in 'while read'
         echo 0 > /tmp/pushed_count
@@ -87,7 +87,7 @@ spec:
         find "${charts_dir}" -name "Chart.yaml" > /tmp/found_charts
 
         while read -r chart_yaml; do
-          chart_dir=$(dirname "${chart_yaml}")
+          chart_dir="$(cd "$(dirname "${chart_yaml}")" && pwd)"
 
           # 1. Skip if the directory itself is a symbolic link to avoid loops
           if [ -L "${chart_dir}" ]; then
