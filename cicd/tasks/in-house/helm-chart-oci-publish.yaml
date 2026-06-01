@@ -114,6 +114,15 @@ spec:
           echo "Changing to directory ${chart_dir}"
           cd "${chart_dir}"
 
+          # Handle JSON schema relative paths for linting
+          schema_modified="false"
+          if [ -f "values.schema.json" ]; then
+            echo "🔧 Converting relative file:// paths in values.schema.json to absolute..."
+            cp values.schema.json values.schema.json.bak
+            sed -i "s|file://\([^/]\)|file://${chart_dir}/\1|g" values.schema.json
+            schema_modified="true"
+          fi
+
           echo "🚀 Publishing ${name}:${version}"
 
           echo "▶ Building dependencies..."
@@ -122,8 +131,18 @@ spec:
           echo "▶ Linting and validating chart schema..."
           helm lint .
 
+          if [ "${schema_modified}" = "true" ]; then
+            echo "🗑️  Removing modified values.schema.json before packaging"
+            rm values.schema.json
+          fi
+
           echo "▶ Packaging chart..."
           helm package . --destination .
+
+          if [ "${schema_modified}" = "true" ]; then
+            echo "🔄 Restoring original values.schema.json..."
+            mv values.schema.json.bak values.schema.json
+          fi
 
           echo "▶ Pushing package to OCI registry..."
           helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
