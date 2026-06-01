@@ -9,9 +9,9 @@ spec:
       value: $(body.involvedObject.namespace)
     - name: repository
       value: $(body.involvedObject.name)
-    - name: helm-charts-dir
-      value: $(body.metadata.helmChartsDir)
+    - name: charts-dir
+      value: $(body.metadata.chartsDir)
     - name: excluded-charts
       value: $(body.metadata.excludedCharts)
-    - name: helm-registry
-      value: $(body.metadata.helmRegistry)
+    - name: registry
+      value: $(body.metadata.registry)

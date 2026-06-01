@@ -7,9 +7,9 @@ spec:
   params:
     - name: namespace
     - name: repository
-    - name: helm-charts-dir
+    - name: charts-dir
       default: charts
-    - name: helm-registry
+    - name: registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
     - name: excluded-charts
       default: "artifactory-jcr chart-repository"
@@ -60,9 +60,9 @@ spec:
             value: $(tt.params.namespace)
           - name: repository
             value: $(tt.params.repository)
-          - name: helm-charts-dir
-            value: $(tt.params.helm-charts-dir)
-          - name: helm-registry
-            value: $(tt.params.helm-registry)
+          - name: charts-dir
+            value: $(tt.params.charts-dir)
+          - name: registry
+            value: $(tt.params.registry)
           - name: excluded-charts
             value: $(tt.params.excluded-charts)

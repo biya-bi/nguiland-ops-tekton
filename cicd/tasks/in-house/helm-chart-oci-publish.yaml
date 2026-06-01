@@ -15,11 +15,11 @@ spec:
     Package Helm chart directories and push them to an OCI registry using
     Docker credentials mounted via the docker-config workspace.
   params:
-    - name: helm-charts-dir
+    - name: charts-dir
       default: charts
-    - name: helm-registry
+    - name: registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
-    - name: skipTls
+    - name: skip-tls
       type: string
       default: "false"
       description: "Whether to skip TLS verification and use plain HTTP for the OCI registry."
@@ -66,11 +66,11 @@ spec:
         set -euo pipefail
 
         push_opts=""
-        if [ "$(params.skipTls)" = "true" ]; then
+        if [ "$(params.skip-tls)" = "true" ]; then
           push_opts="--plain-http"
         fi
 
-        raw_charts_dir="$(workspaces.source.path)/$(params.helm-charts-dir)"
+        raw_charts_dir="$(workspaces.source.path)/$(params.charts-dir)"
         if [ ! -d "${raw_charts_dir}" ]; then
           echo "Charts directory does not exist: ${raw_charts_dir}"
           exit 1
@@ -145,7 +145,7 @@ spec:
           fi
 
           echo "▶ Pushing package to OCI registry..."
-          helm push "${name}-${version}.tgz" "$(params.helm-registry)" ${push_opts}
+          helm push "${name}-${version}.tgz" "$(params.registry)" ${push_opts}
 
           rm "${name}-${version}.tgz"
 

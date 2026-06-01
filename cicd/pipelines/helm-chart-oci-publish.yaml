@@ -12,13 +12,13 @@ spec:
       type: string
     - name: repository
       type: string
-    - name: helm-charts-dir
+    - name: charts-dir
       default: addons
-    - name: helm-registry
+    - name: registry
       default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
     - name: artifactory-readiness-timeout
       default: 10m
-    - name: skipTls
+    - name: skip-tls
       type: string
       default: "false"
     - name: excluded-charts
@@ -87,12 +87,12 @@ spec:
       taskRef:
         name: helm-chart-oci-publish
       params:
-        - name: helm-charts-dir
-          value: $(params.helm-charts-dir)
-        - name: helm-registry
-          value: $(params.helm-registry)
-        - name: skipTls
-          value: $(params.skipTls)
+        - name: charts-dir
+          value: $(params.charts-dir)
+        - name: registry
+          value: $(params.registry)
+        - name: skip-tls
+          value: $(params.skip-tls)
         - name: excluded-charts
           value: $(params.excluded-charts)
       workspaces:
