@@ -17,5 +17,5 @@ spec:
     value: $(body.metadata.helmChartRepoRevision)
   - name: helm-chart-release-namespace
     value: $(body.metadata.helmChartReleaseNamespace)
-  - name: helm-charts-dir
-    value: $(body.metadata.helmChartsDir)
+  - name: charts-dir
+    value: $(body.metadata.chartsDir)

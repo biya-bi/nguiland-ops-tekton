@@ -14,7 +14,7 @@ spec:
   - name: helm-chart-repo-url
   - name: helm-chart-repo-revision
   - name: helm-chart-release-namespace
-  - name: helm-charts-dir
+  - name: charts-dir
   resourcetemplates:
   - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
@@ -100,7 +100,7 @@ spec:
         value: $(tt.params.helm-chart-repo-revision)
       - name: helm-chart-release-namespace
         value: $(tt.params.helm-chart-release-namespace)
-      - name: helm-charts-dir
-        value: $(tt.params.helm-charts-dir)
+      - name: charts-dir
+        value: $(tt.params.charts-dir)
       - name: group-id
         value: $(tt.params.namespace)

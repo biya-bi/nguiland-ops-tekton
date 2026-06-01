@@ -47,9 +47,9 @@ spec:
     default: ""
   - name: helm-chart-release-namespace
     default: ""
-  - name: helm-charts-dir
+  - name: charts-dir
     default: "."
-  - name: helm-chart-context
+  - name: chart-context
     default: ""
   - name: environment
     default: ""
@@ -203,7 +203,7 @@ spec:
     - name: tag
       value: $(tasks.get-maven-artifact-details.results.version)
     - name: chart-dir
-      value: $(params.helm-charts-dir)/$(params.helm-chart-context)
+      value: $(params.charts-dir)/$(params.chart-context)
     - name: environment
       value: $(tasks.get-env-settings.results.environment)
     - name: app-context-dir
@@ -238,9 +238,9 @@ spec:
       name: helm-chart-push-script
     params:
     - name: chart-dir
-      value: $(params.helm-charts-dir)
+      value: $(params.charts-dir)
     - name: context-dir
-      value: $(params.helm-chart-context)
+      value: $(params.chart-context)
     - name: values-file
       value: $(tasks.update-helm-chart.results.values-file)
     - name: environment
@@ -280,7 +280,7 @@ spec:
       name: helm-upgrade-from-source
     params:
     - name: charts_dir
-      value: $(params.helm-charts-dir)/$(params.helm-chart-context)
+      value: $(params.charts-dir)/$(params.chart-context)
     - name: release_version
       value: $(params.helm-chart-release-version)
     - name: release_name
