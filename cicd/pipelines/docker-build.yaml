@@ -14,147 +14,147 @@ spec:
       - The tag used while building the image is the content of the VERSION file contained in the subdirectory.
       - Each subdirectory name is a valid Docker image name.
   params:
-  - name: repo-url
-    type: string
-    default: ""
-    description: The Git repository URL. If empty, it will be retrieved from the Flux Git repository.
-  - name: repo-revision
-    type: string
-    default: "main"
-    description: The Git repository revision. If empty, it will be retrieved from the Flux Git repository.
-  - name: base-revision
-    default: ""
-    description: Base branch used for diff (PR-aware)
-  - name: always-build
-    type: string
-    default: "false"
-    description: If true, skips detection and builds all valid subdirectories.
-  - name: flux-gitrepo-namespace
-    type: string
-    default: ""
-    description: The namespace containing the Flux Git repository containing subdirectories.
-  - name: flux-gitrepo-name
-    type: string
-    default: ""
-    description: The name of the Flux Git repository containing subdirectories.
-  - name: context-dir
-    type: string
-    default: "."
-    description: The subdirectory from which to launch the Docker build
-  - name: image-push-endpoint
-    default: artifactory-jcr.infra.svc.cluster.local:8082
-  - name: image-registry-repo
-    default: docker-local
-  - name: image-path
-    default: "org.nguiland.infra"
-    description: The path (under image-registry-repo) in which the image will be published.
-  workspaces:
-  - name: source
-  - name: flux-manifests
-  - name: docker-config
-  - name: ssh-directory
-  tasks:
-  - name: validate-flux
-    taskRef:
-      name: git-flux-validation
-    params:
-    - name: url
-      value: $(params.repo-url)
-    - name: flux-gitrepo-namespace
-      value: $(params.flux-gitrepo-namespace)
-    - name: flux-gitrepo-name
-      value: $(params.flux-gitrepo-name)
-  - name: get-flux-gitrepo
-    runAfter:
-      - validate-flux
-    taskRef:
-      name: flux-git-repo
-    params:
-    - name: repository
-      value: $(params.flux-gitrepo-name)
-    - name: namespace
-      value: $(params.flux-gitrepo-namespace)
-    workspaces:
-    - name: manifest-dir
-      workspace: flux-manifests
-  - name: parse-flux
-    runAfter:
-      - get-flux-gitrepo
-    taskRef:
-      name: git-flux-parsing
-    params:
-    - name: url
-      value: $(params.repo-url)
-    - name: revision
-      value: $(params.repo-revision)
-    - name: manifest-file
-      value: $(tasks.get-flux-gitrepo.results.manifest-file)
-    workspaces:
-    - name: manifest-dir
-      workspace: flux-manifests
-  - name: fetch-source
-    runAfter:
-      - parse-flux
-    taskRef:
-      name: git-clone
-    params:
-    - name: url
-      value: $(tasks.parse-flux.results.url)
-    - name: revision
-      value: $(tasks.parse-flux.results.revision)
-    - name: depth
-      value: "0"
-    workspaces:
-    - name: output
-      workspace: source
-    - name: ssh-directory
-      workspace: ssh-directory
-  - name: validate-docker-contexts
-    runAfter:
-      - fetch-source
-    taskRef:
-      name: validate-docker-contexts
-    params:
-      - name: context-dir
-        value: $(params.context-dir)
-    workspaces:
-      - name: source
-        workspace: source
-  - name: detect-changed-docker-contexts
-    runAfter:
-      - validate-docker-contexts
-    taskRef:
-      name: detect-changed-docker-contexts
-    params:
-    - name: context-dir
-      value: $(params.context-dir)
+    - name: repo-url
+      type: string
+      default: ""
+      description: The Git repository URL. If empty, it will be retrieved from the Flux Git repository.
+    - name: repo-revision
+      type: string
+      default: main
+      description: The Git repository revision. If empty, it will be retrieved from the Flux Git repository.
     - name: base-revision
-      value: $(params.base-revision)
+      default: ""
+      description: Base branch used for diff (PR-aware)
     - name: always-build
-      value: $(params.always-build)
-    workspaces:
+      type: string
+      default: "false"
+      description: If true, skips detection and builds all valid subdirectories.
+    - name: flux-gitrepo-namespace
+      type: string
+      default: ""
+      description: The namespace containing the Flux Git repository containing subdirectories.
+    - name: flux-gitrepo-name
+      type: string
+      default: ""
+      description: The name of the Flux Git repository containing subdirectories.
+    - name: context-dir
+      type: string
+      default: .
+      description: The subdirectory from which to launch the Docker build
+    - name: image-push-endpoint
+      default: artifactory-jcr.infra.svc.cluster.local:8082
+    - name: image-registry-repo
+      default: docker-local
+    - name: image-path
+      default: org.nguiland.infra
+      description: The path (under image-registry-repo) in which the image will be published.
+  workspaces:
     - name: source
-      workspace: source
+    - name: flux-manifests
+    - name: docker-config
     - name: ssh-directory
-      workspace: ssh-directory
-  - name: build-docker-contexts
-    runAfter:
-      - detect-changed-docker-contexts
-    taskRef:
-      name: build-docker-contexts
-    params:
-      - name: registry
-        value: $(params.image-push-endpoint)
-      - name: repository
-        value: $(params.image-registry-repo)
-      - name: path
-        value: $(params.image-path)
-      - name: always-build
-        value: $(params.always-build)
-      - name: changed-dirs
-        value: $(tasks.detect-changed-docker-contexts.results.contexts)
-    workspaces:
-      - name: source
-        workspace: source
-      - name: docker-config
-        workspace: docker-config
+  tasks:
+    - name: validate-flux
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: flux-gitrepo-namespace
+          value: $(params.flux-gitrepo-namespace)
+        - name: flux-gitrepo-name
+          value: $(params.flux-gitrepo-name)
+    - name: get-flux-gitrepo
+      runAfter:
+        - validate-flux
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.flux-gitrepo-name)
+        - name: namespace
+          value: $(params.flux-gitrepo-namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifests
+    - name: parse-flux
+      runAfter:
+        - get-flux-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
+        - name: manifest-file
+          value: $(tasks.get-flux-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifests
+    - name: fetch-source
+      runAfter:
+        - parse-flux
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(tasks.parse-flux.results.url)
+        - name: revision
+          value: $(tasks.parse-flux.results.revision)
+        - name: depth
+          value: "0"
+      workspaces:
+        - name: output
+          workspace: source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: validate-docker-contexts
+      runAfter:
+        - fetch-source
+      taskRef:
+        name: validate-docker-contexts
+      params:
+        - name: context-dir
+          value: $(params.context-dir)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: detect-changed-docker-contexts
+      runAfter:
+        - validate-docker-contexts
+      taskRef:
+        name: detect-changed-docker-contexts
+      params:
+        - name: context-dir
+          value: $(params.context-dir)
+        - name: base-revision
+          value: $(params.base-revision)
+        - name: always-build
+          value: $(params.always-build)
+      workspaces:
+        - name: source
+          workspace: source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: build-docker-contexts
+      runAfter:
+        - detect-changed-docker-contexts
+      taskRef:
+        name: build-docker-contexts
+      params:
+        - name: registry
+          value: $(params.image-push-endpoint)
+        - name: repository
+          value: $(params.image-registry-repo)
+        - name: path
+          value: $(params.image-path)
+        - name: always-build
+          value: $(params.always-build)
+        - name: changed-dirs
+          value: $(tasks.detect-changed-docker-contexts.results.contexts)
+      workspaces:
+        - name: source
+          workspace: source
+        - name: docker-config
+          workspace: docker-config

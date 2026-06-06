@@ -17,319 +17,317 @@ spec:
       - The package.json file contains a script called build.
       - The build script places its output in the directory specified by the build-output-dir parameter.
   params:
-  - name: node-repo-url
-    type: string
-    default: ""
-  - name: node-repo-revision
-    type: string
-    default: "main"
-  - name: node-flux-gitrepo-namespace
-    type: string
-    default: ""
-    description: The namespace containing the Flux Git repository representing the Node project.
-  - name: node-flux-gitrepo-name
-    type: string
-    default: ""
-    description: The name of the Flux Git repository representing the Node project.
-  - name: node-context-dir
-    type: string
-    default: "."
-    description: >-
-      The directory from which to launch the Node build
-  - name: node-build-output-dir
-    default: "dist"
-  - name: group-id
-  - name: image-push-endpoint
-    default: artifactory-jcr.infra.svc.cluster.local:8082
-  - name: image-registry-repo
-    default: docker-local
-  - name: helm-chart-repo-url
-    type: string
-  - name: helm-chart-repo-revision
-    type: string
-    default: "main"
-  - name: helm-chart-release-version
-    default: ""
-  - name: helm-chart-release-namespace
-    default: ""
-  - name: charts-dir
-    default: "."
-  - name: chart-context
-    default: ""
-  - name: environment
-    default: ""
-  - name: node-image
-    default: gcr.io/cloud-builders/mvn:3.9.1
-  workspaces:
-  - name: node-source
-  - name: node-local-repo
-  - name: node-flux-manifests
-  - name: docker-config
-  - name: helm-source
-  - name: ssh-directory
-  - name: nginx-config
-  tasks:
-  - name: validate-node-flux
-    taskRef:
-      name: git-flux-validation
-    params:
-    - name: url
-      value: $(params.node-repo-url)
-    - name: flux-gitrepo-namespace
-      value: $(params.node-flux-gitrepo-namespace)
-    - name: flux-gitrepo-name
-      value: $(params.node-flux-gitrepo-name)
-  - name: get-node-flux-gitrepo
-    runAfter:
-      - validate-node-flux
-    taskRef:
-      name: flux-git-repo
-    params:
-    - name: repository
-      value: $(params.node-flux-gitrepo-name)
-    - name: namespace
-      value: $(params.node-flux-gitrepo-namespace)
-    workspaces:
-    - name: manifest-dir
-      workspace: node-flux-manifests
-  - name: parse-node-flux
-    runAfter:
-      - get-node-flux-gitrepo
-    taskRef:
-      name: git-flux-parsing
-    params:
-    - name: url
-      value: $(params.node-repo-url)
-    - name: revision
-      value: $(params.node-repo-revision)
-    - name: manifest-file
-      value: $(tasks.get-node-flux-gitrepo.results.manifest-file)
-    workspaces:
-    - name: manifest-dir
-      workspace: node-flux-manifests
-  - name: fetch-node-source
-    runAfter:
-      - parse-node-flux
-    taskRef:
-      name: git-clone
-    params:
-    - name: url
-      value: $(tasks.parse-node-flux.results.url)
-    - name: revision
-      value: $(tasks.parse-node-flux.results.revision)
-    workspaces:
-    - name: output
-      workspace: node-source
-    - name: ssh-directory
-      workspace: ssh-directory
-  - name: get-node-package-details
-    runAfter:
-      - fetch-node-source
-    taskRef:
-      name: node-package-details
-    params:
-    - name: context-dir
-      value: $(params.node-context-dir)
-    workspaces:
-      - name: source
-        workspace: node-source
-  - name: get-env-settings
-    runAfter:
-      - get-node-package-details
-    taskRef:
-      name: env-settings
-    params:
-      - name: environment
-        value: $(params.environment)
-  - name: build-node-source
-    runAfter:
-      - get-env-settings
-    taskRef:
-      name: node-build
-    params:
+    - name: node-repo-url
+      type: string
+      default: ""
+    - name: node-repo-revision
+      type: string
+      default: main
+    - name: node-flux-gitrepo-namespace
+      type: string
+      default: ""
+      description: The namespace containing the Flux Git repository representing the Node project.
+    - name: node-flux-gitrepo-name
+      type: string
+      default: ""
+      description: The name of the Flux Git repository representing the Node project.
+    - name: node-context-dir
+      type: string
+      default: .
+      description: >-
+        The directory from which to launch the Node build
+    - name: node-build-output-dir
+      default: dist
     - name: group-id
-      value: $(params.group-id)
-    - name: package
-      value: $(tasks.get-node-package-details.results.package)
-    - name: context-dir
-      value: $(params.node-context-dir)
-    - name: build-output-dir
-      value: $(params.node-build-output-dir)
+    - name: image-push-endpoint
+      default: artifactory-jcr.infra.svc.cluster.local:8082
+    - name: image-registry-repo
+      default: docker-local
+    - name: helm-chart-repo-url
+      type: string
+    - name: helm-chart-repo-revision
+      type: string
+      default: main
+    - name: helm-chart-release-version
+      default: ""
+    - name: helm-chart-release-namespace
+      default: ""
+    - name: charts-dir
+      default: .
+    - name: chart-context
+      default: ""
     - name: environment
-      value: $(tasks.get-env-settings.results.environment)
-    workspaces:
-      - name: source
-        workspace: node-source
-      - name: node-local-repo
-        workspace: node-local-repo
-  - name: get-nginx-config
-    runAfter:
-      - build-node-source
-    taskRef:
-      name: config-map
-    params:
-    - name: config-map-name
-      value: nginx-spa
-    workspaces:
-      - name: output
-        workspace: nginx-config
-  - name: create-nginx-dockerfile
-    runAfter:
-      - get-nginx-config
-    taskRef:
-      name: nginx-dockerfile
-    params:
-    - name: context-dir
-      value: $(tasks.build-node-source.results.package-dir)
-    - name: distribution
-      value: $(tasks.build-node-source.results.distribution)
-    workspaces:
-      - name: source
-        workspace: node-local-repo
-      - name: nginx-config
-        workspace: nginx-config
-  - name: build-and-push-image
-    runAfter:
-      - create-nginx-dockerfile
-    taskRef:
-      name: kaniko
-    params:
-      - name: CONTEXT
-        value: $(params.group-id)/$(tasks.get-node-package-details.results.package)
-      - name: IMAGE
-        value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package):$(tasks.get-node-package-details.results.version)
-      # - name: STORAGE_DRIVER
-      #   value: "$(params.storageDriver)"
-    workspaces:
-      - name: source
-        workspace: node-local-repo
-      - name: dockerconfig
-        workspace: docker-config
-  - name: clean-node-local-repo
-    runAfter:
-    - build-and-push-image
-    taskRef:
-      name: delete-except
-    params:
-      - name: regex
-        value: node_modules
-      - name: context-dir
-        value: $(tasks.build-node-source.results.package-dir)
-    workspaces:
-      - name: parent-dir
-        workspace: node-local-repo
-  - name: fetch-helm-source
-    runAfter:
-      - clean-node-local-repo
-    taskRef:
-      name: git-clone
-    params:
-    - name: url
-      value: $(params.helm-chart-repo-url)
-    - name: revision
-      value: $(params.helm-chart-repo-revision)
-    workspaces:
-    - name: output
-      workspace: helm-source
+      default: ""
+    - name: node-image
+      default: gcr.io/cloud-builders/mvn:3.9.1
+  workspaces:
+    - name: node-source
+    - name: node-local-repo
+    - name: node-flux-manifests
+    - name: docker-config
+    - name: helm-source
     - name: ssh-directory
-      workspace: ssh-directory
-  - name: update-helm-chart
-    runAfter:
-      - fetch-helm-source
-    taskRef:
-      name: helm-chart-update
-    params:
-    - name: repository
-      value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package)
-    - name: tag
-      value: $(tasks.get-node-package-details.results.version)
-    - name: chart-dir
-      value: $(params.charts-dir)/$(params.chart-context)
-    - name: environment
-      value: $(tasks.get-env-settings.results.environment)
-    - name: app-context-dir
-      value: $(params.node-context-dir)
-    workspaces:
-    - name: chart-source
-      workspace: helm-source
-    - name: app-source
-      workspace: node-source
-  - name: get-helm-chart-commit-message
-    runAfter:
-      - update-helm-chart
-    taskRef:
-      name: helm-chart-commit-message
-    params:
-    - name: previous-repository
-      value: $(tasks.update-helm-chart.results.previous-repository)
-    - name: previous-tag
-      value: $(tasks.update-helm-chart.results.previous-tag)
-    - name: current-repository
-      value: $(tasks.update-helm-chart.results.current-repository)
-    - name: current-tag
-      value: $(tasks.update-helm-chart.results.current-tag)
-    - name: component-name
-      value: $(tasks.get-node-package-details.results.package)
-    - name: app-commit-id
-      value: $(tasks.update-helm-chart.results.app-commit-id)
-  - name: get-helm-chart-push-script
-    runAfter:
-      - get-helm-chart-commit-message
-    taskRef:
-      name: helm-chart-push-script
-    params:
-    - name: chart-dir
-      value: $(params.charts-dir)
-    - name: context-dir
-      value: $(params.chart-context)
-    - name: values-file
-      value: $(tasks.update-helm-chart.results.values-file)
-    - name: environment
-      value: $(tasks.get-env-settings.results.environment)
-    - name: commit-message
-      value: $(tasks.get-helm-chart-commit-message.results.message)
-    - name: revision
-      value: $(params.helm-chart-repo-revision)
-    workspaces:
-    - name: source
-      workspace: helm-source
-  - name: push-helm-chart
-    runAfter:
-      - get-helm-chart-push-script
-    taskRef:
-      name: git-cli
-    params:
-    - name: GIT_USER_NAME
-      value: "Nguiland Tekton"
-    - name: GIT_USER_EMAIL
-      value: "tekton@nguiland.org"
-    - name: GIT_SCRIPT
-      value: |
-        git config --global --add safe.directory $(workspaces.source.path)
-        $(tasks.get-helm-chart-push-script.results.script)
-    - name: VERBOSE
-      value: "false"
-    workspaces:
-    - name: source
-      workspace: helm-source
-    - name: ssh-directory
-      workspace: ssh-directory
-  - name: deploy-helm-chart
-    runAfter:
-      - push-helm-chart
-    taskRef:
-      name: helm-upgrade-from-source
-    params:
-    - name: charts_dir
-      value: $(params.charts-dir)/$(params.chart-context)
-    - name: release_version
-      value: $(params.helm-chart-release-version)
-    - name: release_name
-      value: $(tasks.get-node-package-details.results.package)
-    - name: release_namespace
-      value: $(params.helm-chart-release-namespace)
-    - name: values_file
-      value: $(tasks.update-helm-chart.results.values-file)
-    workspaces:
-    - name: source
-      workspace: helm-source
+    - name: nginx-config
+  tasks:
+    - name: validate-node-flux
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.node-repo-url)
+        - name: flux-gitrepo-namespace
+          value: $(params.node-flux-gitrepo-namespace)
+        - name: flux-gitrepo-name
+          value: $(params.node-flux-gitrepo-name)
+    - name: get-node-flux-gitrepo
+      runAfter:
+        - validate-node-flux
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.node-flux-gitrepo-name)
+        - name: namespace
+          value: $(params.node-flux-gitrepo-namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: node-flux-manifests
+    - name: parse-node-flux
+      runAfter:
+        - get-node-flux-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: url
+          value: $(params.node-repo-url)
+        - name: revision
+          value: $(params.node-repo-revision)
+        - name: manifest-file
+          value: $(tasks.get-node-flux-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: node-flux-manifests
+    - name: fetch-node-source
+      runAfter:
+        - parse-node-flux
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(tasks.parse-node-flux.results.url)
+        - name: revision
+          value: $(tasks.parse-node-flux.results.revision)
+      workspaces:
+        - name: output
+          workspace: node-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: get-node-package-details
+      runAfter:
+        - fetch-node-source
+      taskRef:
+        name: node-package-details
+      params:
+        - name: context-dir
+          value: $(params.node-context-dir)
+      workspaces:
+        - name: source
+          workspace: node-source
+    - name: get-env-settings
+      runAfter:
+        - get-node-package-details
+      taskRef:
+        name: env-settings
+      params:
+        - name: environment
+          value: $(params.environment)
+    - name: build-node-source
+      runAfter:
+        - get-env-settings
+      taskRef:
+        name: node-build
+      params:
+        - name: group-id
+          value: $(params.group-id)
+        - name: package
+          value: $(tasks.get-node-package-details.results.package)
+        - name: context-dir
+          value: $(params.node-context-dir)
+        - name: build-output-dir
+          value: $(params.node-build-output-dir)
+        - name: environment
+          value: $(tasks.get-env-settings.results.environment)
+      workspaces:
+        - name: source
+          workspace: node-source
+        - name: node-local-repo
+          workspace: node-local-repo
+    - name: get-nginx-config
+      runAfter:
+        - build-node-source
+      taskRef:
+        name: config-map
+      params:
+        - name: config-map-name
+          value: nginx-spa
+      workspaces:
+        - name: output
+          workspace: nginx-config
+    - name: create-nginx-dockerfile
+      runAfter:
+        - get-nginx-config
+      taskRef:
+        name: nginx-dockerfile
+      params:
+        - name: context-dir
+          value: $(tasks.build-node-source.results.package-dir)
+        - name: distribution
+          value: $(tasks.build-node-source.results.distribution)
+      workspaces:
+        - name: source
+          workspace: node-local-repo
+        - name: nginx-config
+          workspace: nginx-config
+    - name: build-and-push-image
+      runAfter:
+        - create-nginx-dockerfile
+      taskRef:
+        name: kaniko
+      params:
+        - name: CONTEXT
+          value: $(params.group-id)/$(tasks.get-node-package-details.results.package)
+        - name: IMAGE
+          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package):$(tasks.get-node-package-details.results.version)
+      workspaces:
+        - name: source
+          workspace: node-local-repo
+        - name: dockerconfig
+          workspace: docker-config
+    - name: clean-node-local-repo
+      runAfter:
+        - build-and-push-image
+      taskRef:
+        name: delete-except
+      params:
+        - name: regex
+          value: node_modules
+        - name: context-dir
+          value: $(tasks.build-node-source.results.package-dir)
+      workspaces:
+        - name: parent-dir
+          workspace: node-local-repo
+    - name: fetch-helm-source
+      runAfter:
+        - clean-node-local-repo
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.helm-chart-repo-url)
+        - name: revision
+          value: $(params.helm-chart-repo-revision)
+      workspaces:
+        - name: output
+          workspace: helm-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: update-helm-chart
+      runAfter:
+        - fetch-helm-source
+      taskRef:
+        name: helm-chart-update
+      params:
+        - name: repository
+          value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package)
+        - name: tag
+          value: $(tasks.get-node-package-details.results.version)
+        - name: chart-dir
+          value: $(params.charts-dir)/$(params.chart-context)
+        - name: environment
+          value: $(tasks.get-env-settings.results.environment)
+        - name: app-context-dir
+          value: $(params.node-context-dir)
+      workspaces:
+        - name: chart-source
+          workspace: helm-source
+        - name: app-source
+          workspace: node-source
+    - name: get-helm-chart-commit-message
+      runAfter:
+        - update-helm-chart
+      taskRef:
+        name: helm-chart-commit-message
+      params:
+        - name: previous-repository
+          value: $(tasks.update-helm-chart.results.previous-repository)
+        - name: previous-tag
+          value: $(tasks.update-helm-chart.results.previous-tag)
+        - name: current-repository
+          value: $(tasks.update-helm-chart.results.current-repository)
+        - name: current-tag
+          value: $(tasks.update-helm-chart.results.current-tag)
+        - name: component-name
+          value: $(tasks.get-node-package-details.results.package)
+        - name: app-commit-id
+          value: $(tasks.update-helm-chart.results.app-commit-id)
+    - name: get-helm-chart-push-script
+      runAfter:
+        - get-helm-chart-commit-message
+      taskRef:
+        name: helm-chart-push-script
+      params:
+        - name: chart-dir
+          value: $(params.charts-dir)
+        - name: context-dir
+          value: $(params.chart-context)
+        - name: values-file
+          value: $(tasks.update-helm-chart.results.values-file)
+        - name: environment
+          value: $(tasks.get-env-settings.results.environment)
+        - name: commit-message
+          value: $(tasks.get-helm-chart-commit-message.results.message)
+        - name: revision
+          value: $(params.helm-chart-repo-revision)
+      workspaces:
+        - name: source
+          workspace: helm-source
+    - name: push-helm-chart
+      runAfter:
+        - get-helm-chart-push-script
+      taskRef:
+        name: git-cli
+      params:
+        - name: GIT_USER_NAME
+          value: Nguiland Tekton
+        - name: GIT_USER_EMAIL
+          value: tekton@nguiland.org
+        - name: GIT_SCRIPT
+          value: |
+            git config --global --add safe.directory $(workspaces.source.path)
+            $(tasks.get-helm-chart-push-script.results.script)
+        - name: VERBOSE
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: helm-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: deploy-helm-chart
+      runAfter:
+        - push-helm-chart
+      taskRef:
+        name: helm-upgrade-from-source
+      params:
+        - name: charts_dir
+          value: $(params.charts-dir)/$(params.chart-context)
+        - name: release_version
+          value: $(params.helm-chart-release-version)
+        - name: release_name
+          value: $(tasks.get-node-package-details.results.package)
+        - name: release_namespace
+          value: $(params.helm-chart-release-namespace)
+        - name: values_file
+          value: $(tasks.update-helm-chart.results.values-file)
+      workspaces:
+        - name: source
+          workspace: helm-source
