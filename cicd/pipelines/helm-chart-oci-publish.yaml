@@ -58,7 +58,14 @@ spec:
       runAfter:
         - parse-helm-gitrepo
       taskRef:
-        name: git-clone
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/git-clone/0.9/git-clone.yaml
       params:
         - name: url
           value: $(tasks.parse-helm-gitrepo.results.url)

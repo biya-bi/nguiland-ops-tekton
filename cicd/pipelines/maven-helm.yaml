@@ -106,7 +106,14 @@ spec:
       runAfter:
         - parse-maven-flux
       taskRef:
-        name: git-clone
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/git-clone/0.9/git-clone.yaml
       params:
         - name: url
           value: $(tasks.parse-maven-flux.results.url)
@@ -156,7 +163,14 @@ spec:
         - build-maven-source
         - get-maven-artifact-details
       taskRef:
-        name: kaniko
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/kaniko/0.6/kaniko.yaml
       params:
         - name: CONTEXT
           value: $(params.maven-context-dir)
@@ -171,7 +185,14 @@ spec:
       runAfter:
         - build-docker-image
       taskRef:
-        name: git-clone
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/git-clone/0.9/git-clone.yaml
       params:
         - name: url
           value: $(params.helm-chart-repo-url)
@@ -254,7 +275,14 @@ spec:
       runAfter:
         - get-helm-chart-push-script
       taskRef:
-        name: git-cli
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/git-cli/0.4/git-cli.yaml
       params:
         - name: GIT_USER_NAME
           value: Nguiland Tekton
@@ -275,7 +303,14 @@ spec:
       runAfter:
         - push-helm-chart
       taskRef:
-        name: helm-upgrade-from-source
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/helm-upgrade-from-source/0.3/helm-upgrade-from-source.yaml
       params:
         - name: charts_dir
           value: $(params.charts-dir)/$(params.chart-context)
