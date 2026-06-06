@@ -10,109 +10,109 @@ spec:
       - Builds the Maven library.
       - Deploys the resulting artifact to a Maven repository.
   params:
-  - name: url
-    type: string
-    default: ""
-  - name: revision
-    type: string
-    default: "main"
-  - name: flux-gitrepo-namespace
-    type: string
-    default: ""
-    description: The namespace containing the Flux Git repository representing the Maven project.
-  - name: flux-gitrepo-name
-    type: string
-    default: ""
-    description: The name of the Flux Git repository representing the Maven project.
-  - name: context-dir
-    type: string
-    default: "."
-    description: >-
-      The directory from which to launch the Maven build
-  - name: maven-repo
-    default: artifactory-oss.infra.svc.cluster.local:8082
-  - name: maven-image
-    default: gcr.io/cloud-builders/mvn:3.9.1
-  workspaces:
-  - name: source
-  - name: maven-settings
-  - name: maven-local-repo
-  - name: ssh-directory
-  - name: flux-manifest-dir
-  tasks:
-  - name: validate
-    taskRef:
-      name: git-flux-validation
-    params:
     - name: url
-      value: $(params.url)
+      type: string
+      default: ""
+    - name: revision
+      type: string
+      default: main
     - name: flux-gitrepo-namespace
-      value: $(params.flux-gitrepo-namespace)
+      type: string
+      default: ""
+      description: The namespace containing the Flux Git repository representing the Maven project.
     - name: flux-gitrepo-name
-      value: $(params.flux-gitrepo-name)
-  - name: get-flux-gitrepo
-    runAfter:
-      - validate
-    taskRef:
-      name: flux-git-repo
-    params:
-    - name: repository
-      value: $(params.flux-gitrepo-name)
-    - name: namespace
-      value: $(params.flux-gitrepo-namespace)
-    workspaces:
-    - name: manifest-dir
-      workspace: flux-manifest-dir
-  - name: parse-flux-gitrepo
-    runAfter:
-      - get-flux-gitrepo
-    taskRef:
-      name: git-flux-parsing
-    params:
-    - name: url
-      value: $(params.url)
-    - name: revision
-      value: $(params.revision)
-    - name: manifest-file
-      value: $(tasks.get-flux-gitrepo.results.manifest-file)
-    workspaces:
-    - name: manifest-dir
-      workspace: flux-manifest-dir
-  - name: fetch-source
-    runAfter:
-      - parse-flux-gitrepo
-    taskRef:
-      name: git-clone
-    params:
-    - name: url
-      value: $(tasks.parse-flux-gitrepo.results.url)
-    - name: revision
-      value: $(tasks.parse-flux-gitrepo.results.revision)
-    workspaces:
-    - name: output
-      workspace: source
-    - name: ssh-directory
-      workspace: ssh-directory
-  - name: build-and-push
-    runAfter:
-      - fetch-source
-    taskRef:
-      kind: Task
-      name: mvn
-    params:
+      type: string
+      default: ""
+      description: The name of the Flux Git repository representing the Maven project.
+    - name: context-dir
+      type: string
+      default: .
+      description: >-
+        The directory from which to launch the Maven build
+    - name: maven-repo
+      default: artifactory-oss.infra.svc.cluster.local:8082
     - name: maven-image
-      value: $(params.maven-image)
-    - name: goals
-      value:
-        - '-pl'
-        - $(params.context-dir)
-        - '-B'
-        - '-U'
-        - deploy
-    workspaces:
-      - name: source
-        workspace: source
-      - name: maven-settings
-        workspace: maven-settings
-      - name: maven-local-repo
-        workspace: maven-local-repo
+      default: gcr.io/cloud-builders/mvn:3.9.1
+  workspaces:
+    - name: source
+    - name: maven-settings
+    - name: maven-local-repo
+    - name: ssh-directory
+    - name: flux-manifest-dir
+  tasks:
+    - name: validate
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.url)
+        - name: flux-gitrepo-namespace
+          value: $(params.flux-gitrepo-namespace)
+        - name: flux-gitrepo-name
+          value: $(params.flux-gitrepo-name)
+    - name: get-flux-gitrepo
+      runAfter:
+        - validate
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.flux-gitrepo-name)
+        - name: namespace
+          value: $(params.flux-gitrepo-namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifest-dir
+    - name: parse-flux-gitrepo
+      runAfter:
+        - get-flux-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: url
+          value: $(params.url)
+        - name: revision
+          value: $(params.revision)
+        - name: manifest-file
+          value: $(tasks.get-flux-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifest-dir
+    - name: fetch-source
+      runAfter:
+        - parse-flux-gitrepo
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(tasks.parse-flux-gitrepo.results.url)
+        - name: revision
+          value: $(tasks.parse-flux-gitrepo.results.revision)
+      workspaces:
+        - name: output
+          workspace: source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: build-and-push
+      runAfter:
+        - fetch-source
+      taskRef:
+        kind: Task
+        name: mvn
+      params:
+        - name: maven-image
+          value: $(params.maven-image)
+        - name: goals
+          value:
+            - -pl
+            - $(params.context-dir)
+            - -B
+            - -U
+            - deploy
+      workspaces:
+        - name: source
+          workspace: source
+        - name: maven-settings
+          workspace: maven-settings
+        - name: maven-local-repo
+          workspace: maven-local-repo

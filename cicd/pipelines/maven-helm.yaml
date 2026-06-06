@@ -15,280 +15,278 @@ spec:
       - Commits and pushes the changes done on the Helm chart.
       - Deploys the Helm chart to the Kubernetes cluster.
   params:
-  - name: maven-repo-url
-    type: string
-    default: ""
-  - name: maven-repo-revision
-    type: string
-    default: "main"
-  - name: maven-flux-gitrepo-namespace
-    type: string
-    default: ""
-    description: The namespace containing the Flux Git repository representing the Maven project.
-  - name: maven-flux-gitrepo-name
-    type: string
-    default: ""
-    description: The name of the Flux Git repository representing the Maven project.
-  - name: maven-context-dir
-    type: string
-    default: "."
-    description: >-
-      The directory from which to launch the Maven build
-  - name: image-push-endpoint
-    default: artifactory-jcr.infra.svc.cluster.local:8082
-  - name: image-registry-repo
-    default: docker-local
-  - name: helm-chart-repo-url
-    type: string
-  - name: helm-chart-repo-revision
-    type: string
-    default: "main"
-  - name: helm-chart-release-version
-    default: ""
-  - name: helm-chart-release-namespace
-    default: ""
-  - name: charts-dir
-    default: "."
-  - name: chart-context
-    default: ""
-  - name: environment
-    default: ""
-  - name: maven-image
-    default: gcr.io/cloud-builders/mvn:3.9.1
-  workspaces:
-  - name: maven-source
-  - name: maven-settings
-  - name: maven-local-repo
-  - name: maven-flux-manifests
-  - name: docker-config
-  - name: helm-source
-  - name: ssh-directory
-  tasks:
-  - name: validate-maven-flux
-    taskRef:
-      name: git-flux-validation
-    params:
-    - name: url
-      value: $(params.maven-repo-url)
-    - name: flux-gitrepo-namespace
-      value: $(params.maven-flux-gitrepo-namespace)
-    - name: flux-gitrepo-name
-      value: $(params.maven-flux-gitrepo-name)
-  - name: get-maven-flux-gitrepo
-    runAfter:
-      - validate-maven-flux
-    taskRef:
-      name: flux-git-repo
-    params:
-    - name: repository
-      value: $(params.maven-flux-gitrepo-name)
-    - name: namespace
-      value: $(params.maven-flux-gitrepo-namespace)
-    workspaces:
-    - name: manifest-dir
-      workspace: maven-flux-manifests
-  - name: parse-maven-flux
-    runAfter:
-      - get-maven-flux-gitrepo
-    taskRef:
-      name: git-flux-parsing
-    params:
-    - name: url
-      value: $(params.maven-repo-url)
-    - name: revision
-      value: $(params.maven-repo-revision)
-    - name: manifest-file
-      value: $(tasks.get-maven-flux-gitrepo.results.manifest-file)
-    workspaces:
-    - name: manifest-dir
-      workspace: maven-flux-manifests
-  - name: fetch-maven-source
-    runAfter:
-      - parse-maven-flux
-    taskRef:
-      name: git-clone
-    params:
-    - name: url
-      value: $(tasks.parse-maven-flux.results.url)
-    - name: revision
-      value: $(tasks.parse-maven-flux.results.revision)
-    workspaces:
-    - name: output
-      workspace: maven-source
-    - name: ssh-directory
-      workspace: ssh-directory
-  - name: get-maven-artifact-details
-    runAfter:
-      - fetch-maven-source
-    taskRef:
-      name: maven-artifact-details
-    params:
-    - name: context-dir
-      value: $(params.maven-context-dir)
-    workspaces:
-      - name: source
-        workspace: maven-source
-  - name: build-maven-source
-    runAfter:
-      - fetch-maven-source
-    taskRef:
-      kind: Task
-      name: mvn
-    params:
+    - name: maven-repo-url
+      type: string
+      default: ""
+    - name: maven-repo-revision
+      type: string
+      default: main
+    - name: maven-flux-gitrepo-namespace
+      type: string
+      default: ""
+      description: The namespace containing the Flux Git repository representing the Maven project.
+    - name: maven-flux-gitrepo-name
+      type: string
+      default: ""
+      description: The name of the Flux Git repository representing the Maven project.
+    - name: maven-context-dir
+      type: string
+      default: .
+      description: >-
+        The directory from which to launch the Maven build
+    - name: image-push-endpoint
+      default: artifactory-jcr.infra.svc.cluster.local:8082
+    - name: image-registry-repo
+      default: docker-local
+    - name: helm-chart-repo-url
+      type: string
+    - name: helm-chart-repo-revision
+      type: string
+      default: main
+    - name: helm-chart-release-version
+      default: ""
+    - name: helm-chart-release-namespace
+      default: ""
+    - name: charts-dir
+      default: .
+    - name: chart-context
+      default: ""
+    - name: environment
+      default: ""
     - name: maven-image
-      value: $(params.maven-image)
-    - name: goals
-      value:
-        - '-pl'
-        - $(params.maven-context-dir)
-        - '-B'
-        - '-U'
-        - package
-    workspaces:
-      - name: maven-settings
-        workspace: maven-settings
-      - name: source
-        workspace: maven-source
-      - name: maven-local-repo
-        workspace: maven-local-repo
-  - name: build-docker-image
-    runAfter:
-      - build-maven-source
-      - get-maven-artifact-details
-    taskRef:
-      name: kaniko
-    params:
-      - name: CONTEXT
-        value: $(params.maven-context-dir)
-      - name: IMAGE
-        value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id):$(tasks.get-maven-artifact-details.results.version)
-      # - name: STORAGE_DRIVER
-      #   value: "$(params.storageDriver)"
-    workspaces:
-      - name: source
-        workspace: maven-source
-      - name: dockerconfig
-        workspace: docker-config
-  - name: fetch-helm-source
-    runAfter:
-      - build-docker-image
-    taskRef:
-      name: git-clone
-    params:
-    - name: url
-      value: $(params.helm-chart-repo-url)
-    - name: revision
-      value: $(params.helm-chart-repo-revision)
-    workspaces:
-    - name: output
-      workspace: helm-source
+      default: gcr.io/cloud-builders/mvn:3.9.1
+  workspaces:
+    - name: maven-source
+    - name: maven-settings
+    - name: maven-local-repo
+    - name: maven-flux-manifests
+    - name: docker-config
+    - name: helm-source
     - name: ssh-directory
-      workspace: ssh-directory
-  - name: get-env-settings
-    runAfter:
-      - fetch-helm-source
-    taskRef:
-      name: env-settings
-    params:
-      - name: environment
-        value: $(params.environment)
-  - name: update-helm-chart
-    runAfter:
-      - get-env-settings
-    taskRef:
-      name: helm-chart-update
-    params:
-    - name: repository
-      value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
-    - name: tag
-      value: $(tasks.get-maven-artifact-details.results.version)
-    - name: chart-dir
-      value: $(params.charts-dir)/$(params.chart-context)
-    - name: environment
-      value: $(tasks.get-env-settings.results.environment)
-    - name: app-context-dir
-      value: $(params.maven-context-dir)
-    workspaces:
-    - name: chart-source
-      workspace: helm-source
-    - name: app-source
-      workspace: maven-source
-  - name: get-helm-chart-commit-message
-    runAfter:
-      - update-helm-chart
-    taskRef:
-      name: helm-chart-commit-message
-    params:
-    - name: previous-repository
-      value: $(tasks.update-helm-chart.results.previous-repository)
-    - name: previous-tag
-      value: $(tasks.update-helm-chart.results.previous-tag)
-    - name: current-repository
-      value: $(tasks.update-helm-chart.results.current-repository)
-    - name: current-tag
-      value: $(tasks.update-helm-chart.results.current-tag)
-    - name: component-name
-      value: $(tasks.get-maven-artifact-details.results.artifact-id)
-    - name: app-commit-id
-      value: $(tasks.update-helm-chart.results.app-commit-id)
-  - name: get-helm-chart-push-script
-    runAfter:
-      - get-helm-chart-commit-message
-    taskRef:
-      name: helm-chart-push-script
-    params:
-    - name: chart-dir
-      value: $(params.charts-dir)
-    - name: context-dir
-      value: $(params.chart-context)
-    - name: values-file
-      value: $(tasks.update-helm-chart.results.values-file)
-    - name: environment
-      value: $(tasks.get-env-settings.results.environment)
-    - name: commit-message
-      value: $(tasks.get-helm-chart-commit-message.results.message)
-    - name: revision
-      value: $(params.helm-chart-repo-revision)
-    workspaces:
-    - name: source
-      workspace: helm-source
-  - name: push-helm-chart
-    runAfter:
-      - get-helm-chart-push-script
-    taskRef:
-      name: git-cli
-    params:
-    - name: GIT_USER_NAME
-      value: "Nguiland Tekton"
-    - name: GIT_USER_EMAIL
-      value: "tekton@nguiland.org"
-    - name: GIT_SCRIPT
-      value: |
-        git config --global --add safe.directory $(workspaces.source.path)
-        $(tasks.get-helm-chart-push-script.results.script)
-    - name: VERBOSE
-      value: "false"
-    workspaces:
-    - name: source
-      workspace: helm-source
-    - name: ssh-directory
-      workspace: ssh-directory
-  - name: deploy-helm-chart
-    runAfter:
-      - push-helm-chart
-    taskRef:
-      name: helm-upgrade-from-source
-    params:
-    - name: charts_dir
-      value: $(params.charts-dir)/$(params.chart-context)
-    - name: release_version
-      value: $(params.helm-chart-release-version)
-    - name: release_name
-      value: $(tasks.get-maven-artifact-details.results.artifact-id)
-    - name: release_namespace
-      value: $(params.helm-chart-release-namespace)
-    - name: values_file
-      value: $(tasks.update-helm-chart.results.values-file)
-    workspaces:
-    - name: source
-      workspace: helm-source
+  tasks:
+    - name: validate-maven-flux
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.maven-repo-url)
+        - name: flux-gitrepo-namespace
+          value: $(params.maven-flux-gitrepo-namespace)
+        - name: flux-gitrepo-name
+          value: $(params.maven-flux-gitrepo-name)
+    - name: get-maven-flux-gitrepo
+      runAfter:
+        - validate-maven-flux
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.maven-flux-gitrepo-name)
+        - name: namespace
+          value: $(params.maven-flux-gitrepo-namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-flux-manifests
+    - name: parse-maven-flux
+      runAfter:
+        - get-maven-flux-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: url
+          value: $(params.maven-repo-url)
+        - name: revision
+          value: $(params.maven-repo-revision)
+        - name: manifest-file
+          value: $(tasks.get-maven-flux-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: maven-flux-manifests
+    - name: fetch-maven-source
+      runAfter:
+        - parse-maven-flux
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(tasks.parse-maven-flux.results.url)
+        - name: revision
+          value: $(tasks.parse-maven-flux.results.revision)
+      workspaces:
+        - name: output
+          workspace: maven-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: get-maven-artifact-details
+      runAfter:
+        - fetch-maven-source
+      taskRef:
+        name: maven-artifact-details
+      params:
+        - name: context-dir
+          value: $(params.maven-context-dir)
+      workspaces:
+        - name: source
+          workspace: maven-source
+    - name: build-maven-source
+      runAfter:
+        - fetch-maven-source
+      taskRef:
+        kind: Task
+        name: mvn
+      params:
+        - name: maven-image
+          value: $(params.maven-image)
+        - name: goals
+          value:
+            - -pl
+            - $(params.maven-context-dir)
+            - -B
+            - -U
+            - package
+      workspaces:
+        - name: maven-settings
+          workspace: maven-settings
+        - name: source
+          workspace: maven-source
+        - name: maven-local-repo
+          workspace: maven-local-repo
+    - name: build-docker-image
+      runAfter:
+        - build-maven-source
+        - get-maven-artifact-details
+      taskRef:
+        name: kaniko
+      params:
+        - name: CONTEXT
+          value: $(params.maven-context-dir)
+        - name: IMAGE
+          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id):$(tasks.get-maven-artifact-details.results.version)
+      workspaces:
+        - name: source
+          workspace: maven-source
+        - name: dockerconfig
+          workspace: docker-config
+    - name: fetch-helm-source
+      runAfter:
+        - build-docker-image
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.helm-chart-repo-url)
+        - name: revision
+          value: $(params.helm-chart-repo-revision)
+      workspaces:
+        - name: output
+          workspace: helm-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: get-env-settings
+      runAfter:
+        - fetch-helm-source
+      taskRef:
+        name: env-settings
+      params:
+        - name: environment
+          value: $(params.environment)
+    - name: update-helm-chart
+      runAfter:
+        - get-env-settings
+      taskRef:
+        name: helm-chart-update
+      params:
+        - name: repository
+          value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(tasks.get-maven-artifact-details.results.group-id)/$(tasks.get-maven-artifact-details.results.artifact-id)
+        - name: tag
+          value: $(tasks.get-maven-artifact-details.results.version)
+        - name: chart-dir
+          value: $(params.charts-dir)/$(params.chart-context)
+        - name: environment
+          value: $(tasks.get-env-settings.results.environment)
+        - name: app-context-dir
+          value: $(params.maven-context-dir)
+      workspaces:
+        - name: chart-source
+          workspace: helm-source
+        - name: app-source
+          workspace: maven-source
+    - name: get-helm-chart-commit-message
+      runAfter:
+        - update-helm-chart
+      taskRef:
+        name: helm-chart-commit-message
+      params:
+        - name: previous-repository
+          value: $(tasks.update-helm-chart.results.previous-repository)
+        - name: previous-tag
+          value: $(tasks.update-helm-chart.results.previous-tag)
+        - name: current-repository
+          value: $(tasks.update-helm-chart.results.current-repository)
+        - name: current-tag
+          value: $(tasks.update-helm-chart.results.current-tag)
+        - name: component-name
+          value: $(tasks.get-maven-artifact-details.results.artifact-id)
+        - name: app-commit-id
+          value: $(tasks.update-helm-chart.results.app-commit-id)
+    - name: get-helm-chart-push-script
+      runAfter:
+        - get-helm-chart-commit-message
+      taskRef:
+        name: helm-chart-push-script
+      params:
+        - name: chart-dir
+          value: $(params.charts-dir)
+        - name: context-dir
+          value: $(params.chart-context)
+        - name: values-file
+          value: $(tasks.update-helm-chart.results.values-file)
+        - name: environment
+          value: $(tasks.get-env-settings.results.environment)
+        - name: commit-message
+          value: $(tasks.get-helm-chart-commit-message.results.message)
+        - name: revision
+          value: $(params.helm-chart-repo-revision)
+      workspaces:
+        - name: source
+          workspace: helm-source
+    - name: push-helm-chart
+      runAfter:
+        - get-helm-chart-push-script
+      taskRef:
+        name: git-cli
+      params:
+        - name: GIT_USER_NAME
+          value: Nguiland Tekton
+        - name: GIT_USER_EMAIL
+          value: tekton@nguiland.org
+        - name: GIT_SCRIPT
+          value: |
+            git config --global --add safe.directory $(workspaces.source.path)
+            $(tasks.get-helm-chart-push-script.results.script)
+        - name: VERBOSE
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: helm-source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: deploy-helm-chart
+      runAfter:
+        - push-helm-chart
+      taskRef:
+        name: helm-upgrade-from-source
+      params:
+        - name: charts_dir
+          value: $(params.charts-dir)/$(params.chart-context)
+        - name: release_version
+          value: $(params.helm-chart-release-version)
+        - name: release_name
+          value: $(tasks.get-maven-artifact-details.results.artifact-id)
+        - name: release_namespace
+          value: $(params.helm-chart-release-namespace)
+        - name: values_file
+          value: $(tasks.update-helm-chart.results.values-file)
+      workspaces:
+        - name: source
+          workspace: helm-source
