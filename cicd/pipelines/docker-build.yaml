@@ -48,6 +48,10 @@ spec:
     - name: image-path
       default: org.nguiland.infra
       description: The path (under image-registry-repo) in which the image will be published.
+    - name: skip-tls
+      type: string
+      default: "false"
+      description: "Whether to skip TLS verification and use plain HTTP for the registry."
   workspaces:
     - name: source
     - name: flux-manifests
@@ -160,6 +164,8 @@ spec:
           value: $(params.always-build)
         - name: changed-dirs
           value: $(tasks.detect-changed-docker-contexts.results.contexts)
+        - name: skip-tls
+          value: $(params.skip-tls)
       workspaces:
         - name: source
           workspace: source
