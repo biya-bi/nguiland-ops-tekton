@@ -58,10 +58,10 @@ spec:
         if [ -n "${environment}" ]; then
           printf "The environment won't be retrieved from the config map because an environment has been specified\n"
         else
-          environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.environment')
+          environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.ENVIRONMENT')
         fi
 
-        image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.image-pull-endpoint')
+        image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.ACTIFACTORY_JCR_HOST')
 
         printf "%s" "${environment}" > $(results.environment.path)
         printf "%s" "${image_pull_endpoint}" > $(results.image-pull-endpoint.path)
