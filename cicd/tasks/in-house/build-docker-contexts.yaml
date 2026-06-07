@@ -29,6 +29,10 @@ spec:
       type: string
       default: "false"
       description: If true, builds all valid subdirectories.
+    - name: skip-tls
+      type: string
+      default: "false"
+      description: "Whether to skip TLS verification and use plain HTTP for the registry."
   steps:
     - name: build-and-push
       image: gcr.io/kaniko-project/executor:debug
@@ -73,13 +77,19 @@ spec:
 
             BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
+            extra_args=""
+            if [ "$(params.skip-tls)" = "true" ]; then
+              extra_args="--insecure --skip-tls-verify"
+            fi
+
             /kaniko/executor \
               --context "$BASE/$DIR" \
               --dockerfile "$BASE/$DIR/Dockerfile" \
               --destination "$IMAGE_PATH:$VERSION" \
               --destination "$IMAGE_PATH:latest" \
               --build-arg="BUILD_DATE=$BUILD_DATE" \
-              --build-arg="VERSION=$VERSION"
+              --build-arg="VERSION=$VERSION" \
+              ${extra_args}
           else
             # Only show skip message if we were expecting a specific directory to work
             if [ "$ALWAYS_BUILD" != "true" ]; then
