@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: EventListener
 metadata:
   name: maven-helm
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   serviceAccountName: tekton-robot
   triggers:

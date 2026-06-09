@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerBinding
 metadata:
   name: maven-helm
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec: 
   params:
   - name: namespace

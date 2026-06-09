@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: maven-lib
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   description: |
     This pipeline does the following:
@@ -30,7 +30,7 @@ spec:
       description: >-
         The directory from which to launch the Maven build
     - name: maven-repo
-      default: artifactory-oss.infra.svc.cluster.local:8082
+      default: artifactory-oss.${ENVIRONMENT}.svc.cluster.local:8082
     - name: maven-image
       default: gcr.io/cloud-builders/mvn:3.9.1
   workspaces:

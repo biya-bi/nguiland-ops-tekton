@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: maven-helm
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   description: |
     This pipeline does the following:
@@ -35,7 +35,7 @@ spec:
       description: >-
         The directory from which to launch the Maven build
     - name: image-push-endpoint
-      default: artifactory-jcr.infra.svc.cluster.local:8082
+      default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
     - name: image-registry-repo
       default: docker-local
     - name: helm-chart-repo-url

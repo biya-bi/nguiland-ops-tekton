@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
   name: docker-build
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   params:
   - name: namespace
@@ -14,7 +14,7 @@ spec:
     kind: PipelineRun
     metadata:
       generateName: docker-build-run-
-      namespace: infra
+      namespace: ${ENVIRONMENT}
     spec:
       pipelineRef:
         name: docker-build
