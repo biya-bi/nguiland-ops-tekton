@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: docker-build
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   description: |
     This pipeline does the following:
@@ -42,7 +42,7 @@ spec:
       default: .
       description: The subdirectory from which to launch the Docker build
     - name: image-push-endpoint
-      default: artifactory-jcr.infra.svc.cluster.local:8082
+      default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
     - name: image-registry-repo
       default: docker-local
     - name: image-path

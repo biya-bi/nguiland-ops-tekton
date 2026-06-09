@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerBinding
 metadata:
   name: docker-build
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec: 
   params:
   - name: namespace

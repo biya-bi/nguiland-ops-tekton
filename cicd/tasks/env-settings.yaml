@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: env-settings
-  namespace: infra
+  namespace: ${ENVIRONMENT}
   labels:
     app.kubernetes.io/version: "0.2"
   annotations:
@@ -39,9 +39,11 @@ spec:
 
         config_map_name=env-settings
 
+        namespace="$(context.taskRun.namespace)"
+
         env_settings="${config_maps_dir}/${config_map_name}.yaml"
 
-        kubectl get configmap "${config_map_name}" -n infra -o yaml > "${env_settings}"
+        kubectl get configmap "${config_map_name}" -n "${namespace}" -o yaml > "${env_settings}"
 
         chmod 644 "${env_settings}"
 
