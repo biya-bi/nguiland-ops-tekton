@@ -29,7 +29,7 @@ spec:
         namespace=$(params.flux-gitrepo-namespace)
         repo_name=$(params.flux-gitrepo-name)
 
-        if [ -z "${url}" ] && ( [ -z "${namespace}" ] ||  [ -z "${repo_name}" ] ); then
+        if [ -z "$url" ] && ( [ -z "$namespace" ] ||  [ -z "$repo_name" ] ); then
             printf "Either the repository URL is specified, or the Flux namespace and repostiory name is specified!\n"
             exit 1
         fi

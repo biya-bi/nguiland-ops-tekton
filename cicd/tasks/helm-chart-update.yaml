@@ -53,16 +53,16 @@ spec:
         fi
 
         app_details_dir=/workspace/app-details
-        mkdir -p "${app_details_dir}"
-        commit_id_file="${app_details_dir}"/commit-id
+        mkdir -p "$app_details_dir"
+        commit_id_file="$app_details_dir"/commit-id
 
         git config --global --add safe.directory $(workspaces.app-source.path)
 
         cd $(workspaces.app-source.path)/$(params.app-context-dir)
 
-        git rev-parse HEAD > "${commit_id_file}"
+        git rev-parse HEAD > "$commit_id_file"
 
-        chmod 644 "${commit_id_file}"
+        chmod 644 "$commit_id_file"
 
     - name: update
       image: $(params.yq-image)
@@ -72,8 +72,8 @@ spec:
 
         parse_environment() {
           local environment=$(params.environment)
-          if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
-            printf "${environment}"
+          if [[ -n "$environment" ]] && [[ "$environment" != "local" ]]; then
+            printf "$environment"
           else
             printf ""
           fi
@@ -81,15 +81,15 @@ spec:
 
         get_values_file() {
           local environment="$1"
-          if [[ -n "${environment}" ]]; then
-            local values_file=values."${environment}".yaml
-            if [[ ! -f "${values_file}" ]]; then
-              cp values.yaml "${values_file}"
+          if [[ -n "$environment" ]]; then
+            local values_file=values."$environment".yaml
+            if [[ ! -f "$values_file" ]]; then
+              cp values.yaml "$values_file"
             fi
           else
             values_file="values.yaml"
           fi
-          printf "${values_file}"
+          printf "$values_file"
         }
 
         update_image() {
@@ -98,16 +98,16 @@ spec:
           local repository=$(params.repository)
           local tag=$(params.tag)
 
-          local previous_repository=$(yq .image.repository "${values_file}")
-          local previous_tag=$(yq .image.tag "${values_file}")
+          local previous_repository=$(yq .image.repository "$values_file")
+          local previous_tag=$(yq .image.tag "$values_file")
 
-          yq -y -i '(.image.repository = "'"${repository}"'") | (.image.tag = "'"${tag}"'")' "${values_file}"
+          yq -y -i '(.image.repository = "'"$repository"'") | (.image.tag = "'"$tag"'")' "$values_file"
 
-          printf "${previous_repository}" | tr -d \" > $(results.previous-repository.path)
-          printf "${previous_tag}" | tr -d \" > $(results.previous-tag.path)
+          printf "$previous_repository" | tr -d \" > $(results.previous-repository.path)
+          printf "$previous_tag" | tr -d \" > $(results.previous-tag.path)
 
-          printf "${repository}" | tr -d \" > $(results.current-repository.path)
-          printf "${tag}" | tr -d \" > $(results.current-tag.path)
+          printf "$repository" | tr -d \" > $(results.current-repository.path)
+          printf "$tag" | tr -d \" > $(results.current-tag.path)
         }
 
         set_app_commit_id() {
@@ -118,21 +118,21 @@ spec:
 
           local commit_id=""
 
-          if [[ -f "${commit_id_file}" ]]; then
-            commit_id=$(cat "${commit_id_file}")
+          if [[ -f "$commit_id_file" ]]; then
+            commit_id=$(cat "$commit_id_file")
           fi
 
-          if [[ -n "${commit_id}" ]] && [[ -n "${environment}" ]]; then
-            yq -y -i '(.podAnnotations.appCommitId = "'"${commit_id}"'")' "${values_file}"
+          if [[ -n "$commit_id" ]] && [[ -n "$environment" ]]; then
+            yq -y -i '(.podAnnotations.appCommitId = "'"$commit_id"'")' "$values_file"
           fi
 
-          printf "${commit_id}"
+          printf "$commit_id"
         }
 
         environment=$(parse_environment)
-        values_file=$(get_values_file "${environment}")
-        update_image "${values_file}"
-        commit_id=$(set_app_commit_id "${environment}" "${values_file}")
+        values_file=$(get_values_file "$environment")
+        update_image "$values_file"
+        commit_id=$(set_app_commit_id "$environment" "$values_file")
 
-        printf "${values_file}" | tr -d \" > $(results.values-file.path)
-        printf "${commit_id}" > $(results.app-commit-id.path)
+        printf "$values_file" | tr -d \" > $(results.values-file.path)
+        printf "$commit_id" > $(results.app-commit-id.path)

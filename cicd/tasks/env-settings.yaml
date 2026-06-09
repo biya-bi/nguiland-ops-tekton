@@ -35,20 +35,20 @@ spec:
 
         config_maps_dir=/workspace/config-maps
 
-        mkdir -p "${config_maps_dir}"
+        mkdir -p "$config_maps_dir"
 
         config_map_name=env-settings
 
         namespace="$(context.taskRun.namespace)"
 
-        env_settings="${config_maps_dir}/${config_map_name}.yaml"
+        env_settings="$config_maps_dir/$config_map_name.yaml"
 
-        kubectl get configmap "${config_map_name}" -n "${namespace}" -o yaml > "${env_settings}"
+        kubectl get configmap "$config_map_name" -n "$namespace" -o yaml > "$env_settings"
 
-        chmod 644 "${env_settings}"
+        chmod 644 "$env_settings"
 
-        printf "The %s config map has been retrieved successfully with the below content:\n\n" "${config_map_name}"
-        cat "${env_settings}"
+        printf "The %s config map has been retrieved successfully with the below content:\n\n" "$config_map_name"
+        cat "$env_settings"
     - name: retrieve-settings
       image: $(params.yq-image)
       script: |
@@ -57,7 +57,7 @@ spec:
         set -euo pipefail
 
         environment=$(params.environment)
-        if [ -n "${environment}" ]; then
+        if [ -n "$environment" ]; then
           printf "The environment won't be retrieved from the config map because an environment has been specified\n"
         else
           environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.ENVIRONMENT')
@@ -65,8 +65,8 @@ spec:
 
         image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.ACTIFACTORY_JCR_HOST')
 
-        printf "%s" "${environment}" > $(results.environment.path)
-        printf "%s" "${image_pull_endpoint}" > $(results.image-pull-endpoint.path)
+        printf "%s" "$environment" > $(results.environment.path)
+        printf "%s" "$image_pull_endpoint" > $(results.image-pull-endpoint.path)
 
-        printf "The environment is %s\n" "${environment}"
-        printf "The retrieved image pull endpoint is %s\n" "${image_pull_endpoint}"
+        printf "The environment is %s\n" "$environment"
+        printf "The retrieved image pull endpoint is %s\n" "$image_pull_endpoint"

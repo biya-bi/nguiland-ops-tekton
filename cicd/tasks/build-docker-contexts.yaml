@@ -89,7 +89,7 @@ spec:
               --destination "$IMAGE_PATH:latest" \
               --build-arg="BUILD_DATE=$BUILD_DATE" \
               --build-arg="VERSION=$VERSION" \
-              ${extra_args}
+              $extra_args
           else
             # Only show skip message if we were expecting a specific directory to work
             if [ "$ALWAYS_BUILD" != "true" ]; then

@@ -47,7 +47,7 @@ spec:
 
         get_context_dir() {
           local context_dir=$(params.context-dir)
-          if [ "${context_dir}" == "." ] || [ -z "${context_dir}" ]; then
+          if [ "$context_dir" == "." ] || [ -z "$context_dir" ]; then
             printf $(workspaces.source.path)
           else
             printf $(workspaces.source.path)/$(params.context-dir)
@@ -56,34 +56,40 @@ spec:
 
         build() {
           local package_dir=$(params.group-id)/$(params.package)
-          local absolute_package_path=$(workspaces.node-local-repo.path)/"${package_dir}"
-          local node_modules="${absolute_package_path}/node_modules"
+          local absolute_package_path=$(workspaces.node-local-repo.path)/"$package_dir"
+          local node_modules="$absolute_package_path/node_modules"
 
-          mkdir -p "${node_modules}"
+          mkdir -p "$node_modules"
 
-          yarn config set -- --modules-folder "${node_modules}"
+          yarn config set -- --modules-folder "$node_modules"
 
           local source_dir=$(get_context_dir)
 
-          cp -r "${source_dir}"/* "${absolute_package_path}"
+          cp -r "$source_dir"/* "$absolute_package_path"
           
-          cd "${absolute_package_path}"
+          cd "$absolute_package_path"
 
           yarn install --configuration $(params.environment)
           yarn build --configuration $(params.environment)
 
-          printf "%s" "${package_dir}" > $(results.package-dir.path)
+          printf "%s" "$package_dir" > $(results.package-dir.path)
         }
 
         set_distribution() {
           local build_output_dir=$(params.build-output-dir)
-          local files=( $(find "${build_output_dir}" -name index.html -type f | xargs ls -A) )
 
-          local index_html="${files[0]}"
+          # 1. Find the file and grab the first line directly as a clean string
+          local index_html
+          index_html=$(find "$build_output_dir" -name index.html -type f 2>/dev/null | head -n 1)
 
-          if [ -n "${index_html}" ]; then
-              local distribution=$(dirname $index_html)
-              printf "%s" ${distribution} > $(results.distribution.path)
+          # 2. Safely check if the variable string is not empty
+          if [ -n "$index_html" ]; then
+              local distribution
+              distribution=$(dirname "$index_html")
+              printf "%s" "$distribution" > $(results.distribution.path)
+          else
+              echo "Error: index.html not found in $build_output_dir" >&2
+              exit 1
           fi
         }
 

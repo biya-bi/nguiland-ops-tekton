@@ -32,5 +32,5 @@ spec:
         package=$(echo $(yq '.name' package.json) | sed 's/"//g')
         version=$(echo $(yq '.version' package.json) | sed 's/"//g')
 
-        printf "%s" "${package}" > "$(results.package.path)"
-        printf "%s" "${version}" > "$(results.version.path)"
+        printf "%s" "$package" > "$(results.package.path)"
+        printf "%s" "$version" > "$(results.version.path)"

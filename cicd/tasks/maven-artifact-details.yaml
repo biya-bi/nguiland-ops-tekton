@@ -31,17 +31,17 @@ spec:
       workingDir: $(workspaces.source.path)/$(params.context-dir)
       script: |
         group_id=$(yq '.project.groupId' pom.xml)
-        if [ -z "${group_id}" ] || [ "${group_id}" == null ]; then
+        if [ -z "$group_id" ] || [ "$group_id" == null ]; then
           group_id=$(yq '.project.parent.groupId' pom.xml)
         fi
 
         artifact_id=$(yq '.project.artifactId' pom.xml)
 
         version=$(yq '.project.version' pom.xml)
-        if [ -z "${version}" ] || [ "${version}" == null ]; then
+        if [ -z "$version" ] || [ "$version" == null ]; then
           version=$(yq '.project.parent.version' pom.xml)
         fi
 
-        printf "%s" "${group_id}" > "$(results.group-id.path)"
-        printf "%s" "${artifact_id}" > "$(results.artifact-id.path)"
-        printf "%s" "${version}" > "$(results.version.path)"
+        printf "%s" "$group_id" > "$(results.group-id.path)"
+        printf "%s" "$artifact_id" > "$(results.artifact-id.path)"
+        printf "%s" "$version" > "$(results.version.path)"

@@ -40,7 +40,7 @@ spec:
         repository=$(params.repository)
         namespace=$(params.namespace)
 
-        if [ -z "${repository}" ] || [ -z "${namespace}" ]; then
+        if [ -z "$repository" ] || [ -z "$namespace" ]; then
           printf "The Flux Git Repository will not be retrieved because the supplied repository or the namespace is blank. Exiting\n"
           printf "%s" "" > $(results.manifest-file.path)
           exit 0
@@ -48,14 +48,14 @@ spec:
 
         manifest_file=$(realpath $(mktemp -p .))
 
-        chmod 644 "${manifest_file}"
+        chmod 644 "$manifest_file"
 
         [[ "$(workspaces.kubeconfig-dir.bound)" == "true" ]] && \
         [[ -f $(workspaces.kubeconfig-dir.path)/kubeconfig ]] && \
         export KUBECONFIG=$(workspaces.kubeconfig-dir.path)/kubeconfig
 
-        kubectl get gitrepository "${repository}" -n "${namespace}" -o yaml | tee "${manifest_file}"
+        kubectl get gitrepository "$repository" -n "$namespace" -o yaml | tee "$manifest_file"
 
-        printf "\n\nFlux Git Repository CRD was successfully retrieved and saved in %s\n" "${manifest_file}"
-        printf "%s" "${manifest_file}" > $(results.manifest-file.path)
+        printf "\n\nFlux Git Repository CRD was successfully retrieved and saved in %s\n" "$manifest_file"
+        printf "%s" "$manifest_file" > $(results.manifest-file.path)
 

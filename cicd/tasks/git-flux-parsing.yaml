@@ -44,41 +44,40 @@ spec:
         red_color='\033[0;31m'
         default_color='\033[0m'
 
-        if [ -z "${url}" ]; then
+        if [ -z "$url" ]; then
           printf "The supplied URL is blank\n"
-          printf "Ignoring the %s supplied revision\n" "${revision}"
+          printf "Ignoring the %s supplied revision\n" "$revision"
 
-          printf "Checking the %s supplied manifest file\n" "${manifest_file}"
+          printf "Checking the %s supplied manifest file\n" "$manifest_file"
 
-          if [ ! -f "${manifest_file}" ]; then
-            printf "${red_color}The %s manifest file does not exist!${default_color}\n" "${manifest_file}"
+          if [ ! -f "$manifest_file" ]; then
+            printf "%bThe %s manifest file does not exist!%b\n" "$red_color" "$manifest_file" "$default_color"
             exit 1
           fi
 
-          printf "The supplied %s manifest file was found\n" "${manifest_file}"
+          printf "The supplied %s manifest file was found\n" "$manifest_file"
           
-          if [ ! -s "${manifest_file}" ] ; then
-            printf "${red_color}The supplied %s manifest file is empty${default_color}\n" "${manifest_file}"
+          if [ ! -s "$manifest_file" ] ; then
+            printf "%bThe supplied %s manifest file is empty%b\n" "$red_color" "$manifest_file" "$default_color"
             exit 1
           else
-            printf "Extracting the URL and revision from %s\n" "${manifest_file}"
+            printf "Extracting the URL and revision from %s\n" "$manifest_file"
 
-            manifest_content=$(cat "${manifest_file}")
+            manifest_content=$(cat "$manifest_file")
 
-            url=$(echo "${manifest_content}" | yq .spec.url)
-            revision=$(echo "${manifest_content}" | yq .spec.ref.branch)
+            url=$(echo "$manifest_content" | yq .spec.url)
+            revision=$(echo "$manifest_content" | yq .spec.ref.branch)
 
-            printf "\nThe extracted URL is ${green_color}%s${default_color}\n" "${url}"
-            printf "The extracted revision is ${green_color}%s${default_color}\n" "${revision}"
+            printf "\nThe extracted URL is %b%s%b\n" "$green_color" "$url" "$default_color"
+            printf "The extracted revision is %b%s%b\n" "$green_color" "$revision" "$default_color"
           fi
         else
-          printf "The supplied URL is ${green_color}%s${default_color}\n" "${url}"
-          printf "The supplied revision is ${green_color}%s${default_color}\n" "${revision}"
-          if [ -n "${manifest_file}" ]; then
-            printf "Ignoring the %s manifest file\n" "${manifest_file}"
+          printf "The supplied URL is %b%s%b\n" "$green_color" "$url" "$default_color"
+          printf "The supplied revision is %b%s%b\n" "$green_color" "$revision" "$default_color"
+          if [ -n "$manifest_file" ]; then
+            printf "Ignoring the %s manifest file\n" "$manifest_file"
           fi
         fi
 
-        printf "%s" "${url}" > $(results.url.path)
-        printf "%s" "${revision}" > $(results.revision.path)
-
+        printf "%s" "$url" > $(results.url.path)
+        printf "%s" "$revision" > $(results.revision.path)

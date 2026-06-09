@@ -42,8 +42,8 @@ spec:
 
         parse_environment() {
           local environment=$(params.environment)
-          if [[ -n "${environment}" ]] && [[ "${environment}" != "local" ]]; then
-            printf "${environment}"
+          if [[ -n "$environment" ]] && [[ "$environment" != "local" ]]; then
+            printf "$environment"
           else
             printf ""
           fi
@@ -52,7 +52,7 @@ spec:
         get_context_dir() {
           local context_dir=$(params.context-dir)
           if [[ -n "{context_dir}" ]]; then
-            printf "$(params.chart-dir)/${context_dir}"
+            printf "$(params.chart-dir)/$context_dir"
           else
             printf $(params.chart-dir)
           fi
@@ -63,13 +63,13 @@ spec:
 
         script=$(cat <<EOF
         if [[ "$(git --git-dir=.git diff --stat)" != "" ]]; then
-          if [[ -n "${environment}" ]]; then
-            cd "${context_dir}"
+          if [[ -n "$environment" ]]; then
+            cd "$context_dir"
             git add $(params.values-file)
             git commit -m "$(params.commit-message)"
             git push origin HEAD:$(params.revision)
           else
-            printf "Helm chart changes will not be committed because the environment is '%s'\n" "${environment}"
+            printf "Helm chart changes will not be committed because the environment is '%s'\n" "$environment"
           fi
         else
           printf "No changes were made to the Helm chart\n"
@@ -77,4 +77,4 @@ spec:
         EOF
         )
 
-        printf "%s" "${script}" > $(results.script.path)
+        printf "%s" "$script" > $(results.script.path)
