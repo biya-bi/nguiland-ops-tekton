@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: build-docker-contexts
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   description: |
     Detects changed directories and builds/pushes them using Kaniko.

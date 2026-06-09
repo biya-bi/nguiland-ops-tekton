@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: helm-chart-commit-message
-  namespace: infra
+  namespace: ${ENVIRONMENT}
   labels:
     app.kubernetes.io/version: "0.1"
   annotations:

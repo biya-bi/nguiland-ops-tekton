@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: validate-docker-contexts
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   description: Validate that all Docker build directories have valid names
   workspaces:

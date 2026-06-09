@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
   name: maven-helm
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   params:
   - name: namespace
@@ -18,7 +18,7 @@ spec:
     kind: PipelineRun
     metadata:
       generateName: maven-helm-run-
-      namespace: infra
+      namespace: ${ENVIRONMENT}
     spec:
       pipelineRef:
         name: maven-helm

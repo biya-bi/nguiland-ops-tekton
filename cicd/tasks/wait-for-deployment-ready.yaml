@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: wait-for-deployment-ready
-  namespace: infra
+  namespace: ${ENVIRONMENT}
   labels:
     app.kubernetes.io/name: wait-for-deployment-ready
     app.kubernetes.io/part-of: tekton

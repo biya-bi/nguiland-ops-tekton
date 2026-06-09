@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: helm-chart-oci-publish
-  namespace: infra
+  namespace: ${ENVIRONMENT}
   labels:
     app.kubernetes.io/version: "0.1"
   annotations:
@@ -18,7 +18,7 @@ spec:
     - name: charts-dir
       default: charts
     - name: registry
-      default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+      default: oci://artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082/docker-local
     - name: skip-tls
       type: string
       default: "false"

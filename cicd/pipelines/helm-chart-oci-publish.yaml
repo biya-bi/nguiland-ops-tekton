@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: helm-chart-oci-publish
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   description: >-
     Checkout a Helm chart repository and publish Helm chart packages
@@ -15,7 +15,7 @@ spec:
     - name: charts-dir
       default: addons
     - name: registry
-      default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+      default: oci://artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082/docker-local
     - name: artifactory-readiness-timeout
       default: 10m
     - name: skip-tls
@@ -83,7 +83,7 @@ spec:
         name: wait-for-deployment-ready
       params:
         - name: namespace
-          value: infra
+          value: ${ENVIRONMENT}
         - name: selector
           value: app.kubernetes.io/instance=artifactory-jcr
         - name: timeout

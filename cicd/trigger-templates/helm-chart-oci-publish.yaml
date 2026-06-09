@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
   name: helm-chart-oci-publish
-  namespace: infra
+  namespace: ${ENVIRONMENT}
 spec:
   params:
     - name: namespace
@@ -10,7 +10,7 @@ spec:
     - name: charts-dir
       default: charts
     - name: registry
-      default: oci://artifactory-jcr.infra.svc.cluster.local:8082/docker-local
+      default: oci://artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082/docker-local
     - name: excluded-charts
       default: "artifactory-jcr chart-repository"
   resourcetemplates:
@@ -18,7 +18,7 @@ spec:
       kind: PipelineRun
       metadata:
         generateName: helm-chart-oci-publish-run-
-        namespace: infra
+        namespace: ${ENVIRONMENT}
       spec:
         pipelineRef:
           name: helm-chart-oci-publish
