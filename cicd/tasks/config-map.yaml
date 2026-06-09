@@ -34,19 +34,19 @@ spec:
 
         config_maps_dir=/workspace/config-maps
 
-        mkdir -p "${config_maps_dir}"
+        mkdir -p "$config_maps_dir"
 
         config_map_name=$(params.config-map-name)
 
         namespace="$(context.taskRun.namespace)"
 
-        config_map_yaml="${config_maps_dir}/${config_map_name}.yaml"
+        config_map_yaml="$config_maps_dir/$config_map_name.yaml"
 
-        kubectl get configmap "${config_map_name}" -n "${namespace}" -o yaml > "${config_map_yaml}"
+        kubectl get configmap "$config_map_name" -n "$namespace" -o yaml > "$config_map_yaml"
 
-        chmod 644 "${config_map_yaml}"
+        chmod 644 "$config_map_yaml"
 
-        printf "The %s config map has been retrieved successfully.\n" "${config_map_name}"
+        printf "The %s config map has been retrieved successfully.\n" "$config_map_name"
     - name: retrieve-content
       image: $(params.yq-image)
       script: |
@@ -60,10 +60,8 @@ spec:
 
         config_map_name=$(params.config-map-name)
 
-        config_map_yaml="${config_maps_dir}/${config_map_name}.yaml"
+        config_map_yaml="$config_maps_dir/$config_map_name.yaml"
 
-        yq '.data | to_entries[] | .key as $key | $key' "${config_map_yaml}" | while read -r key; do
-          yq ".data.\"${key}\"" "${config_map_yaml}" > "${output_dir}/${key}"
-        done
+        yq '.data | to_entries[] | .value style="double"' "$config_map_yaml" > "$output_dir"/[.key]
 
         printf "The config map's content has been placed in %s\n" "${output_dir}"
