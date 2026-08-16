@@ -20,7 +20,7 @@ spec:
       default: 10m
     - name: skip-tls
       type: string
-      default: "false"
+      default: ${SKIP_TLS}
     - name: excluded-charts
       type: string
       default: ""
