@@ -13,7 +13,8 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
-    This task either returns the passed in Git repository URL and revision or retrieve them from the specified manifest file in the specified workspace.
+    This task either returns the passed in Git repository URL and revision or
+    retrieves them from the specified manifest file in the specified workspace.
 
   params:
     - name: url
@@ -56,21 +57,27 @@ spec:
           fi
 
           printf "The supplied %s manifest file was found\n" "$manifest_file"
-          
-          if [ ! -s "$manifest_file" ] ; then
+
+          if [ ! -s "$manifest_file" ]; then
             printf "%bThe supplied %s manifest file is empty%b\n" "$red_color" "$manifest_file" "$default_color"
             exit 1
-          else
-            printf "Extracting the URL and revision from %s\n" "$manifest_file"
-
-            manifest_content=$(cat "$manifest_file")
-
-            url=$(echo "$manifest_content" | yq .spec.url)
-            revision=$(echo "$manifest_content" | yq .spec.ref.branch)
-
-            printf "\nThe extracted URL is %b%s%b\n" "$green_color" "$url" "$default_color"
-            printf "The extracted revision is %b%s%b\n" "$green_color" "$revision" "$default_color"
           fi
+
+          printf "Extracting the URL from %s\n" "$manifest_file"
+
+          manifest_content=$(cat "$manifest_file")
+
+          url=$(echo "$manifest_content" | yq -r '.spec.url')
+
+          if [ -z "$revision" ]; then
+            revision=$(echo "$manifest_content" | yq -r '.spec.ref.branch')
+            printf "No revision was supplied; using manifest branch %s\n" "$revision"
+          else
+            printf "Using the supplied revision %s\n" "$revision"
+          fi
+
+          printf "\nThe extracted URL is %b%s%b\n" "$green_color" "$url" "$default_color"
+          printf "The resolved revision is %b%s%b\n" "$green_color" "$revision" "$default_color"
         else
           printf "The supplied URL is %b%s%b\n" "$green_color" "$url" "$default_color"
           printf "The supplied revision is %b%s%b\n" "$green_color" "$revision" "$default_color"
