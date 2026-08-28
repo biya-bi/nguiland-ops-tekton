@@ -20,7 +20,7 @@ spec:
       default: ""
     - name: maven-repo-revision
       type: string
-      default: main
+      default: ""
     - name: maven-flux-gitrepo-namespace
       type: string
       default: ""

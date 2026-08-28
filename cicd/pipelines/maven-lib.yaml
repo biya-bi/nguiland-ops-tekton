@@ -15,7 +15,7 @@ spec:
       default: ""
     - name: revision
       type: string
-      default: main
+      default: ""
     - name: flux-gitrepo-namespace
       type: string
       default: ""

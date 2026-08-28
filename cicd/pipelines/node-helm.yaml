@@ -22,7 +22,7 @@ spec:
       default: ""
     - name: node-repo-revision
       type: string
-      default: main
+      default: ""
     - name: node-flux-gitrepo-namespace
       type: string
       default: ""
