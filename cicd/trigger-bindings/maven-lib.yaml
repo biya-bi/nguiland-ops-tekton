@@ -11,3 +11,5 @@ spec:
     value: $(body.involvedObject.name)
   - name: context-dir
     value: $(body.metadata.contextDir)
+  - name: revision
+    value: $(body.metadata.revision)

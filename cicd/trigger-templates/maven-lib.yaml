@@ -7,8 +7,9 @@ spec:
   params:
   - name: namespace
   - name: repository
+  - name: revision
   - name: context-dir
-    default: "."
+    default: "."  
   resourcetemplates:
   - apiVersion: tekton.dev/v1beta1
     kind: PipelineRun
@@ -59,6 +60,7 @@ spec:
         value: $(tt.params.namespace)
       - name: flux-gitrepo-name
         value: $(tt.params.repository)
+      - name: revision
+        value: $(tt.params.revision)
       - name: context-dir
         value: $(tt.params.context-dir)
-
