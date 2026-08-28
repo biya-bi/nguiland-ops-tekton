@@ -20,7 +20,7 @@ spec:
       description: The Git repository URL. If empty, it will be retrieved from the Flux Git repository.
     - name: repo-revision
       type: string
-      default: main
+      default: ""
       description: The Git repository revision. If empty, it will be retrieved from the Flux Git repository.
     - name: base-revision
       default: ""
