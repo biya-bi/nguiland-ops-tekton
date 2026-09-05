@@ -72,6 +72,10 @@ spec:
           if [ -z "$revision" ]; then
             revision=$(echo "$manifest_content" | yq -r '.spec.ref.branch')
             printf "No revision was supplied; using manifest branch %s\n" "$revision"
+          elif [[ "$revision" == *@sha1:* ]]; then
+            supplied_revision="$revision"
+            revision="${revision##*@sha1:}"
+            printf "The supplied Flux revision %s identifies commit %s; using the commit ID for checkout\n" "$supplied_revision" "$revision"
           else
             printf "Using the supplied revision %s\n" "$revision"
           fi
