@@ -14,7 +14,7 @@ spec:
   - name: helm-chart-release-namespace
   - name: charts-dir
   resourcetemplates:
-  - apiVersion: tekton.dev/v1beta1
+  - apiVersion: tekton.dev/v1
     kind: PipelineRun
     metadata:
       generateName: maven-helm-run-
