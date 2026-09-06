@@ -14,7 +14,7 @@ spec:
     - name: excluded-charts
       default: "artifactory-jcr chart-repository"
   resourcetemplates:
-    - apiVersion: tekton.dev/v1beta1
+    - apiVersion: tekton.dev/v1
       kind: PipelineRun
       metadata:
         generateName: helm-chart-oci-publish-run-
