@@ -24,10 +24,11 @@ spec:
     spec:
       pipelineRef:
         name: node-helm
-      podTemplate:
-        securityContext:
-          fsGroup: 65532
-      serviceAccountName: tekton-pipeline
+        taskRunTemplate:
+          podTemplate:
+            securityContext:
+              fsGroup: 65532
+          serviceAccountName: tekton-pipeline
       workspaces:
       - name: node-source
         volumeClaimTemplate:
