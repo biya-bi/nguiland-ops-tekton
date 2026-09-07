@@ -22,10 +22,11 @@ spec:
       spec:
         pipelineRef:
           name: helm-chart-oci-publish
-        podTemplate:
-          securityContext:
-            fsGroup: 65532
-        serviceAccountName: tekton-pipeline
+        taskRunTemplate:
+          podTemplate:
+            securityContext:
+              fsGroup: 65532
+          serviceAccountName: tekton-pipeline
         workspaces:
           - name: helm-source
             volumeClaimTemplate:
