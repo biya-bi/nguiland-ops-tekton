@@ -5,6 +5,8 @@ metadata:
   namespace: ${ENVIRONMENT}
 spec: 
   params:
+  - name: pipeline-run-name
+    value: $(header.X-Tekton-PipelineRun-Name)
   - name: namespace
     value: $(body.involvedObject.namespace)
   - name: repository

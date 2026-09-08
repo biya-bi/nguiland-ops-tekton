@@ -5,6 +5,7 @@ metadata:
   namespace: ${ENVIRONMENT}
 spec:
   params:
+  - name: pipeline-run-name
   - name: namespace
   - name: repository
   - name: node-context-dir

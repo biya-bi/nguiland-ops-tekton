@@ -5,6 +5,7 @@ metadata:
   namespace: ${ENVIRONMENT}
 spec:
   params:
+  - name: pipeline-run-name
   - name: namespace
   - name: repository
   - name: context-dir
@@ -13,7 +14,7 @@ spec:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun
     metadata:
-      generateName: docker-build-run-
+      name: $(tt.params.pipeline-run-name)
       namespace: ${ENVIRONMENT}
     spec:
       pipelineRef:
