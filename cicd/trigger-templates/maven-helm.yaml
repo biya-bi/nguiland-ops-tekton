@@ -5,6 +5,7 @@ metadata:
   namespace: ${ENVIRONMENT}
 spec:
   params:
+  - name: pipeline-run-name
   - name: namespace
   - name: repository
   - name: maven-context-dir
@@ -17,7 +18,7 @@ spec:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun
     metadata:
-      generateName: maven-helm-run-
+      name: $(tt.params.pipeline-run-name)
       namespace: ${ENVIRONMENT}
     spec:
       pipelineRef:
