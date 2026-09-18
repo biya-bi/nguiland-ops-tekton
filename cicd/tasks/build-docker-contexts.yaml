@@ -83,6 +83,7 @@ spec:
             fi
 
             /kaniko/executor \
+              --snapshot-mode=redo \
               --context "$BASE/$DIR" \
               --dockerfile "$BASE/$DIR/Dockerfile" \
               --destination "$IMAGE_PATH:$VERSION" \
