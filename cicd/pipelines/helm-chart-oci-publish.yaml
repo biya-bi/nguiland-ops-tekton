@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: helm-chart-oci-publish
-  namespace: ${ENVIRONMENT}
+  namespace: cicd
 spec:
   description: >-
     Checkout a Helm chart repository and publish Helm chart packages
