@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerBinding
 metadata:
   name: maven-helm
-  namespace: ${ENVIRONMENT}
+  namespace: cicd
 spec: 
   params:
   - name: pipeline-run-name

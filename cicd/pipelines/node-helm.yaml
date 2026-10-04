@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: node-helm
-  namespace: ${ENVIRONMENT}
+  namespace: cicd
 spec:
   description: |
     This pipeline does the following:

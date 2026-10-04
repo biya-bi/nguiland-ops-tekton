@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1
 kind: Task
 metadata:
   name: detect-changed-docker-contexts
-  namespace: ${ENVIRONMENT}
+  namespace: cicd
 spec:
   description: Detect directories (contain a Dockerfile) that have changes
   workspaces:

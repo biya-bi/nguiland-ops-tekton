@@ -2,7 +2,7 @@ apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerTemplate
 metadata:
   name: node-helm
-  namespace: ${ENVIRONMENT}
+  namespace: cicd
 spec:
   params:
   - name: pipeline-run-name
@@ -21,7 +21,7 @@ spec:
     kind: PipelineRun
     metadata:
       generateName: node-helm-run-
-      namespace: ${ENVIRONMENT}
+      namespace: cicd
     spec:
       pipelineRef:
         name: node-helm
