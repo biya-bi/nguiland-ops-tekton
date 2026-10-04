@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: maven-local-repo
-  namespace: ${ENVIRONMENT}
+  namespace: cicd
 spec:
   accessModes:
     - ReadWriteOnce
