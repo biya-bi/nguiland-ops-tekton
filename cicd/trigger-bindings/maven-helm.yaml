@@ -23,3 +23,5 @@ spec:
     value: $(body.metadata.chartsDir)
   - name: chart-context
     value: $(body.metadata.chartContext)
+  - name: environment
+    value: $(body.metadata.environment)
