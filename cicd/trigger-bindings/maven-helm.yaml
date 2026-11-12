@@ -21,3 +21,5 @@ spec:
     value: $(body.metadata.helmChartReleaseNamespace)
   - name: charts-dir
     value: $(body.metadata.chartsDir)
+  - name: chart-context
+    value: $(body.metadata.chartContext)
