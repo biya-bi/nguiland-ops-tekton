@@ -15,6 +15,7 @@ spec:
   - name: helm-chart-release-namespace
   - name: charts-dir
   - name: chart-context
+  - name: environment
   resourcetemplates:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun
@@ -92,3 +93,5 @@ spec:
         value: $(tt.params.charts-dir)
       - name: chart-context
         value: $(tt.params.chart-context)
+      - name: environment
+        value: $(tt.params.environment)
