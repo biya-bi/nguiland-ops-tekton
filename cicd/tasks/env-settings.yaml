@@ -63,7 +63,7 @@ spec:
           environment=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.ENVIRONMENT')
         fi
 
-        image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.ARTIFACTORY_JCR_HOST')
+        image_pull_endpoint=$(cat /workspace/config-maps/env-settings.yaml | yq '.data.IMAGE_REGISTRY_HOST')
 
         printf "%s" "$environment" > $(results.environment.path)
         printf "%s" "$image_pull_endpoint" > $(results.image-pull-endpoint.path)
