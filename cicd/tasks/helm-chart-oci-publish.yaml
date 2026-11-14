@@ -19,6 +19,9 @@ spec:
       default: charts
     - name: registry
       default: oci://artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082/docker-local
+    - name: repo-path
+      default: ""
+      description: Optional path below the registry repository for publishing charts.
     - name: skip-tls
       type: string
       default: "false"
@@ -61,9 +64,20 @@ spec:
           value: /tekton/home
         - name: DOCKER_CONFIG
           value: /tekton/home/.docker
+        - name: HELM_REGISTRY
+          value: $(params.registry)
+        - name: REPO_PATH
+          value: $(params.repo-path)
       workingDir: $(workspaces.source.path)
       script: |
         set -euo pipefail
+
+        registry="${HELM_REGISTRY%/}"
+        repo_path="${REPO_PATH#/}"
+        repo_path="${repo_path%/}"
+        if [ -n "$repo_path" ]; then
+          registry="$registry/$repo_path"
+        fi
 
         push_opts=""
         if [ "$(params.skip-tls)" = "true" ]; then
@@ -145,7 +159,7 @@ spec:
           fi
 
           echo "▶ Pushing package to OCI registry..."
-          helm push "$name-$version.tgz" "$(params.registry)" $push_opts
+          helm push "$name-$version.tgz" "$registry" $push_opts
 
           rm "$name-$version.tgz"
 
