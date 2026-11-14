@@ -5,11 +5,11 @@ metadata:
   namespace: cicd
 spec: 
   params:
-  - name: pipeline-run-name
-    value: $(header.X-Tekton-PipelineRun-Name)
-  - name: namespace
-    value: $(body.involvedObject.namespace)
-  - name: repository
-    value: $(body.involvedObject.name)
-  - name: context-dir
-    value: $(body.metadata.contextDir)
+    - name: pipeline-run-name
+      value: $(header.X-Tekton-PipelineRun-Name)
+    - name: namespace
+      value: $(body.involvedObject.namespace)
+    - name: repository
+      value: $(body.involvedObject.name)
+    - name: context-dir
+      value: $(body.metadata.contextDir)

@@ -8,6 +8,6 @@ spec:
   triggers:
     - name: docker-build
       bindings:
-      - ref: docker-build
+        - ref: docker-build
       template:
         ref: docker-build

@@ -12,16 +12,16 @@ spec:
   description: >-
     This Task can be used to run a Maven build. It optimizes builds by using a local Maven repository passed in as a workspace.
   params:
-  - name: maven-image
-    default: gcr.io/cloud-builders/mvn:3.9.1
-  - name: goals
-    description: The Maven goals to run
-    type: array
-    default: ["package"]
+    - name: maven-image
+      default: gcr.io/cloud-builders/mvn:3.9.1
+    - name: goals
+      description: The Maven goals to run
+      type: array
+      default: ["package"]
   workspaces:
-  - name: source
-  - name: maven-local-repo
-  - name: maven-settings
+    - name: source
+    - name: maven-local-repo
+    - name: maven-settings
   steps:
     - name: mvn
       image: $(params.maven-image)
