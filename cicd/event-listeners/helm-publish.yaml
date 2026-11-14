@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: helm-publish
+  namespace: cicd
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: helm-publish
+      bindings:
+        - ref: helm-publish
+      template:
+        ref: helm-publish

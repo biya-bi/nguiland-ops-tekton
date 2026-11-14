@@ -1,0 +1,17 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: helm-publish
+  namespace: cicd
+spec:
+  params:
+    - name: pipeline-run-name
+      value: $(header.X-Tekton-PipelineRun-Name)
+    - name: namespace
+      value: $(body.involvedObject.namespace)
+    - name: repository
+      value: $(body.involvedObject.name)
+    - name: chart-context
+      value: $(body.metadata.chartContext)
+    - name: repo-path
+      value: $(body.metadata.repoPath)
