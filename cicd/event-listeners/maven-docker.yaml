@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: maven-docker
+  namespace: cicd
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: maven-docker
+      bindings:
+        - ref: maven-docker
+      template:
+        ref: maven-docker
