@@ -1,0 +1,130 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: helm-publish
+  namespace: cicd
+spec:
+  description: |
+    This pipeline does the following:
+      - Checks out a Git repository containing a Helm chart.
+      - Builds and pushes the Helm chart to a registry.
+  params:
+    - name: chart-repo-url
+      type: string
+      default: ""
+    - name: chart-repo-revision
+      type: string
+      default: ""
+    - name: flux-gitrepo-namespace
+      type: string
+      default: ""
+      description: The namespace containing the Flux Git repository for the Helm chart.
+    - name: flux-gitrepo-name
+      type: string
+      default: ""
+      description: The name of the Flux Git repository containing the Helm chart.
+    - name: charts-dir
+      type: string
+      default: .
+    - name: chart-context
+      type: string
+      default: ""
+    - name: registry
+      type: string
+      default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
+    - name: registry-repo
+      type: string
+      default: docker-local
+    - name: repo-path
+      type: string
+      default: ""
+      description: Optional path below the registry repository for publishing the chart.
+    - name: skip-tls
+      type: string
+      default: ${SKIP_TLS}
+      description: Whether to skip TLS verification and use plain HTTP for the registry.
+  workspaces:
+    - name: source
+    - name: flux-manifests
+    - name: docker-config
+    - name: ssh-directory
+  tasks:
+    - name: validate-flux
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.chart-repo-url)
+        - name: flux-gitrepo-namespace
+          value: $(params.flux-gitrepo-namespace)
+        - name: flux-gitrepo-name
+          value: $(params.flux-gitrepo-name)
+    - name: get-flux-gitrepo
+      runAfter:
+        - validate-flux
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.flux-gitrepo-name)
+        - name: namespace
+          value: $(params.flux-gitrepo-namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifests
+    - name: parse-flux
+      runAfter:
+        - get-flux-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: url
+          value: $(params.chart-repo-url)
+        - name: revision
+          value: $(params.chart-repo-revision)
+        - name: manifest-file
+          value: $(tasks.get-flux-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifests
+    - name: fetch-source
+      runAfter:
+        - parse-flux
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/git-clone/0.9/git-clone.yaml
+      params:
+        - name: url
+          value: $(tasks.parse-flux.results.url)
+        - name: revision
+          value: $(tasks.parse-flux.results.revision)
+      workspaces:
+        - name: output
+          workspace: source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: publish-chart
+      runAfter:
+        - fetch-source
+      taskRef:
+        name: helm-chart-oci-publish
+      params:
+        - name: charts-dir
+          value: $(params.charts-dir)/$(params.chart-context)
+        - name: registry
+          value: oci://$(params.registry)/$(params.registry-repo)
+        - name: repo-path
+          value: $(params.repo-path)
+        - name: skip-tls
+          value: $(params.skip-tls)
+      workspaces:
+        - name: source
+          workspace: source
+        - name: docker-config
+          workspace: docker-config
