@@ -8,6 +8,6 @@ spec:
   triggers:
     - name: node-helm
       bindings:
-      - ref: node-helm
+        - ref: node-helm
       template:
         ref: node-helm

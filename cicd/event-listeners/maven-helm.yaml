@@ -8,6 +8,6 @@ spec:
   triggers:
     - name: maven-helm
       bindings:
-      - ref: maven-helm
+        - ref: maven-helm
       template:
         ref: maven-helm

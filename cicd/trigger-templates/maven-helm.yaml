@@ -5,17 +5,17 @@ metadata:
   namespace: cicd
 spec:
   params:
-  - name: pipeline-run-name
-  - name: namespace
-  - name: repository
-  - name: maven-context-dir
-    default: "."
-  - name: helm-chart-repo-url
-  - name: helm-chart-repo-revision
-  - name: helm-chart-release-namespace
-  - name: charts-dir
-  - name: chart-context
-  - name: environment
+    - name: pipeline-run-name
+    - name: namespace
+    - name: repository
+    - name: maven-context-dir
+      default: "."
+    - name: helm-chart-repo-url
+    - name: helm-chart-repo-revision
+    - name: helm-chart-release-namespace
+    - name: charts-dir
+    - name: chart-context
+    - name: environment
   resourcetemplates:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun

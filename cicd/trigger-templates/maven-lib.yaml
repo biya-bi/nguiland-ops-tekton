@@ -5,12 +5,12 @@ metadata:
   namespace: cicd
 spec:
   params:
-  - name: pipeline-run-name
-  - name: namespace
-  - name: repository
-  - name: revision
-  - name: context-dir
-    default: "."  
+    - name: pipeline-run-name
+    - name: namespace
+    - name: repository
+    - name: revision
+    - name: context-dir
+      default: "."  
   resourcetemplates:
   - apiVersion: tekton.dev/v1
     kind: PipelineRun

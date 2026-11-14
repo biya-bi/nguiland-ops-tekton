@@ -8,6 +8,6 @@ spec:
   triggers:
     - name: maven-lib
       bindings:
-      - ref: maven-lib
+        - ref: maven-lib
       template:
         ref: maven-lib
