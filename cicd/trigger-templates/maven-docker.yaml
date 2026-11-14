@@ -1,0 +1,68 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: maven-docker
+  namespace: cicd
+spec:
+  params:
+    - name: pipeline-run-name
+    - name: namespace
+    - name: repository
+    - name: context-dir
+      default: "."
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        name: $(tt.params.pipeline-run-name)
+        namespace: cicd
+      spec:
+        pipelineRef:
+          name: maven-docker
+        taskRunTemplate:
+          podTemplate:
+            securityContext:
+              fsGroup: 65532
+          serviceAccountName: tekton-pipeline
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              metadata:
+                labels:
+                  tekton.dev/pvc-protection-finalizer: remove
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 100Mi
+          - name: maven-settings
+            secret:
+              secretName: maven-settings
+          - name: maven-local-repo
+            persistentVolumeClaim:
+              claimName: maven-local-repo
+          - name: flux-manifests
+            volumeClaimTemplate:
+              metadata:
+                labels:
+                  tekton.dev/pvc-protection-finalizer: remove
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 10Mi
+          - name: docker-config
+            secret:
+              secretName: docker-config
+          - name: ssh-directory
+            secret:
+              secretName: ssh-credentials
+        params:
+          - name: flux-gitrepo-namespace
+            value: $(tt.params.namespace)
+          - name: flux-gitrepo-name
+            value: $(tt.params.repository)
+          - name: context-dir
+            value: $(tt.params.context-dir)
