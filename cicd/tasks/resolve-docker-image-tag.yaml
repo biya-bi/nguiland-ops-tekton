@@ -1,0 +1,62 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: resolve-docker-image-tag
+  namespace: cicd
+spec:
+  description: >-
+    Resolves the image tag from an explicit value, VERSION in the build context,
+    or latest when VERSION is absent.
+  params:
+    - name: image-tag
+      type: string
+      default: ""
+    - name: context-dir
+      type: string
+      default: .
+  workspaces:
+    - name: source
+  results:
+    - name: image-tag
+      description: The selected Docker image tag.
+  steps:
+    - name: resolve
+      image: alpine:3.23
+      env:
+        - name: IMAGE_TAG
+          value: $(params.image-tag)
+        - name: CONTEXT_DIR
+          value: $(params.context-dir)
+      script: |
+        #!/bin/sh
+        set -eu
+
+        result="$(results.image-tag.path)"
+
+        if [ -n "$IMAGE_TAG" ]; then
+          printf '%s' "$IMAGE_TAG" > "$result"
+          echo "Using explicitly provided image tag: $IMAGE_TAG"
+          exit 0
+        fi
+
+        version_file="$(workspaces.source.path)/$CONTEXT_DIR/VERSION"
+        if [ ! -f "$version_file" ]; then
+          printf '%s' latest > "$result"
+          echo "No VERSION file at $version_file; using latest"
+          exit 0
+        fi
+
+        version=$(sed -n 's/^[[:space:]]*//;s/[[:space:]]*$//;/./{p;q;}' "$version_file")
+        if [ -z "$version" ]; then
+          echo "VERSION file is empty: $version_file" >&2
+          exit 1
+        fi
+
+        if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
+          echo "Invalid semantic version in $version_file: $version" >&2
+          exit 1
+        fi
+
+        tag=$(printf '%s' "$version" | sed 's/+/-/g')
+        printf '%s' "$tag" > "$result"
+        echo "Using VERSION file image tag: $tag"

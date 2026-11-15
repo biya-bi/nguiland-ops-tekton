@@ -1,0 +1,19 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: go-docker
+  namespace: cicd
+spec:
+  params:
+    - name: pipeline-run-name
+      value: $(header.X-Tekton-PipelineRun-Name)
+    - name: namespace
+      value: $(body.involvedObject.namespace)
+    - name: repository
+      value: $(body.involvedObject.name)
+    - name: repo-url
+      value: $(body.metadata.repoUrl)
+    - name: repo-revision
+      value: $(body.metadata.revision)
+    - name: context-dir
+      value: $(body.metadata.contextDir)

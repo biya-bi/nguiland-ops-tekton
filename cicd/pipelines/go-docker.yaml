@@ -1,0 +1,177 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: go-docker
+  namespace: cicd
+spec:
+  description: |
+    This pipeline does the following:
+      - Checks out a Git repository containing a Go application.
+      - >-
+        Keeps the repository Dockerfile or creates a default for a CGO-free Go
+        application with one executable and no additional runtime assets.
+      - Builds and pushes the Docker image to an image registry.
+  params:
+    - name: repo-url
+      type: string
+      default: ""
+    - name: repo-revision
+      type: string
+      default: ""
+    - name: flux-gitrepo-namespace
+      type: string
+      default: ""
+      description: The namespace containing the Flux Git repository representing the Go project.
+    - name: flux-gitrepo-name
+      type: string
+      default: ""
+      description: The name of the Flux Git repository representing the Go project.
+    - name: context-dir
+      type: string
+      default: "."
+      description: The directory containing the Go module and optional Dockerfile.
+    - name: image-push-endpoint
+      type: string
+      default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
+    - name: image-registry-repo
+      type: string
+      default: docker-local
+    - name: image-tag
+      type: string
+      default: ""
+    - name: go-image
+      type: string
+      default: golang:1.26.4-alpine3.22
+    - name: go-package
+      type: string
+      default: .
+      description: Go package to build when a default Dockerfile is generated.
+  workspaces:
+    - name: source
+    - name: flux-manifests
+    - name: docker-config
+    - name: ssh-directory
+  results:
+    - name: image-url
+      description: The registry URL and tag of the pushed image.
+      value: $(tasks.build-docker-image.results.IMAGE_URL)
+    - name: image-digest
+      description: The digest of the pushed image.
+      value: $(tasks.build-docker-image.results.IMAGE_DIGEST)
+    - name: image-ref
+      description: The immutable registry reference of the pushed image.
+      value: $(tasks.build-docker-image.results.IMAGE_URL)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
+  tasks:
+    - name: validate-flux
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: flux-gitrepo-namespace
+          value: $(params.flux-gitrepo-namespace)
+        - name: flux-gitrepo-name
+          value: $(params.flux-gitrepo-name)
+    - name: get-flux-gitrepo
+      runAfter:
+        - validate-flux
+      taskRef:
+        name: flux-git-repo
+      params:
+        - name: repository
+          value: $(params.flux-gitrepo-name)
+        - name: namespace
+          value: $(params.flux-gitrepo-namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifests
+    - name: parse-flux
+      runAfter:
+        - get-flux-gitrepo
+      taskRef:
+        name: git-flux-parsing
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
+        - name: manifest-file
+          value: $(tasks.get-flux-gitrepo.results.manifest-file)
+      workspaces:
+        - name: manifest-dir
+          workspace: flux-manifests
+    - name: fetch-source
+      runAfter:
+        - parse-flux
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/git-clone/0.9/git-clone.yaml
+      params:
+        - name: url
+          value: $(tasks.parse-flux.results.url)
+        - name: revision
+          value: $(tasks.parse-flux.results.revision)
+      workspaces:
+        - name: output
+          workspace: source
+        - name: ssh-directory
+          workspace: ssh-directory
+    - name: resolve-docker-image-tag
+      runAfter:
+        - fetch-source
+      taskRef:
+        name: resolve-docker-image-tag
+      params:
+        - name: image-tag
+          value: $(params.image-tag)
+        - name: context-dir
+          value: $(params.context-dir)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: prepare-dockerfile
+      runAfter:
+        - fetch-source
+      taskRef:
+        name: prepare-go-dockerfile
+      params:
+        - name: context-dir
+          value: $(params.context-dir)
+        - name: go-image
+          value: $(params.go-image)
+        - name: go-package
+          value: $(params.go-package)
+      workspaces:
+        - name: source
+          workspace: source
+    - name: build-docker-image
+      runAfter:
+        - prepare-dockerfile
+        - resolve-docker-image-tag
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: https://github.com/tektoncd/catalog.git
+          - name: revision
+            value: main
+          - name: pathInRepo
+            value: task/kaniko/0.6/kaniko.yaml
+      params:
+        - name: DOCKERFILE
+          value: $(params.context-dir)/Dockerfile
+        - name: CONTEXT
+          value: $(params.context-dir)
+        - name: IMAGE
+          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.flux-gitrepo-name):$(tasks.resolve-docker-image-tag.results.image-tag)
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: docker-config
