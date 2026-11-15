@@ -1,0 +1,70 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: go-docker
+  namespace: cicd
+spec:
+  params:
+    - name: pipeline-run-name
+    - name: namespace
+    - name: repository
+    - name: repo-url
+      default: ""
+    - name: repo-revision
+      default: ""
+    - name: context-dir
+      default: "."
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        name: $(tt.params.pipeline-run-name)
+        namespace: cicd
+      spec:
+        pipelineRef:
+          name: go-docker
+        taskRunTemplate:
+          podTemplate:
+            securityContext:
+              fsGroup: 65532
+          serviceAccountName: tekton-pipeline
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              metadata:
+                labels:
+                  tekton.dev/pvc-protection-finalizer: remove
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 100Mi
+          - name: flux-manifests
+            volumeClaimTemplate:
+              metadata:
+                labels:
+                  tekton.dev/pvc-protection-finalizer: remove
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 10Mi
+          - name: docker-config
+            secret:
+              secretName: docker-config
+          - name: ssh-directory
+            secret:
+              secretName: ssh-credentials
+        params:
+          - name: flux-gitrepo-namespace
+            value: $(tt.params.namespace)
+          - name: flux-gitrepo-name
+            value: $(tt.params.repository)
+          - name: repo-url
+            value: $(tt.params.repo-url)
+          - name: repo-revision
+            value: $(tt.params.repo-revision)
+          - name: context-dir
+            value: $(tt.params.context-dir)

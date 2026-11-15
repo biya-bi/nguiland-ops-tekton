@@ -1,0 +1,75 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: prepare-go-dockerfile
+  namespace: cicd
+  labels:
+    app.kubernetes.io/version: "0.1"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.17.0"
+    tekton.dev/categories: Build Tools
+    tekton.dev/tags: go, build
+    tekton.dev/displayName: Prepare Go Dockerfile
+    tekton.dev/platforms: linux/amd64
+spec:
+  description: >-
+    This task keeps a repository Dockerfile when present, or creates a default
+    Dockerfile for a CGO-free Go application with a single executable and no
+    additional runtime assets.
+  params:
+    - name: context-dir
+      default: .
+    - name: go-image
+      default: golang:1.26.4-alpine3.22
+    - name: go-package
+      default: .
+  workspaces:
+    - name: source
+  steps:
+    - name: prepare
+      image: docker.io/alpine:3.22
+      script: |
+        #!/bin/sh
+        set -eu
+
+        context_dir="$(workspaces.source.path)/$(params.context-dir)"
+        dockerfile="$context_dir/Dockerfile"
+
+        if [ ! -d "$context_dir" ]; then
+          echo "Go build context does not exist: $context_dir" >&2
+          exit 1
+        fi
+
+        if [ -f "$dockerfile" ]; then
+          echo "Using repository Dockerfile: $dockerfile"
+          exit 0
+        fi
+
+        if [ ! -f "$context_dir/go.mod" ]; then
+          echo "Cannot create a default Dockerfile without go.mod in $context_dir" >&2
+          exit 1
+        fi
+
+        cat > "$dockerfile" <<'DOCKERFILE'
+        FROM $(params.go-image) AS builder
+        WORKDIR /src
+        COPY . .
+        RUN attempt=1; \
+            until go mod download; do \
+              if [ "$attempt" -ge 3 ]; then \
+                echo "go mod download failed after ${attempt} attempts"; \
+                exit 1; \
+              fi; \
+              attempt=$((attempt + 1)); \
+              echo "go mod download failed; retrying (attempt ${attempt}/3)"; \
+              sleep $((attempt * 5)); \
+            done
+        RUN CGO_ENABLED=0 GOOS=linux go build -o /app $(params.go-package)
+
+        FROM gcr.io/distroless/static-debian12@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+        COPY --from=builder /app /app
+        USER nonroot
+        ENTRYPOINT ["/app"]
+        DOCKERFILE
+
+        echo "Created default Dockerfile: $dockerfile"

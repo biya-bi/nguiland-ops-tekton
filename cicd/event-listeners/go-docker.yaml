@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: go-docker
+  namespace: cicd
+spec:
+  serviceAccountName: tekton-robot
+  triggers:
+    - name: go-docker
+      bindings:
+        - ref: go-docker
+      template:
+        ref: go-docker
