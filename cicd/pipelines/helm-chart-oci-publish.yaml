@@ -10,6 +10,7 @@ spec:
   params:
     - name: namespace
       type: string
+      default: ""
     - name: repository
       type: string
     - name: charts-dir
