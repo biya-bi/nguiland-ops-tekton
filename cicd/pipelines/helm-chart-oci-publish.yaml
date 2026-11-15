@@ -13,6 +13,7 @@ spec:
       default: ""
     - name: repository
       type: string
+      default: ""
     - name: repo-url
       type: string
       default: ""
