@@ -40,7 +40,19 @@ spec:
     - name: docker-config
     - name: ssh-directory
   tasks:
+    - name: validate-flux
+      taskRef:
+        name: git-flux-validation
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: flux-gitrepo-namespace
+          value: $(params.namespace)
+        - name: flux-gitrepo-name
+          value: $(params.repository)
     - name: get-helm-gitrepo
+      runAfter:
+        - validate-flux
       taskRef:
         name: flux-git-repo
       params:
