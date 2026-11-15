@@ -13,6 +13,12 @@ spec:
       default: ""
     - name: repository
       type: string
+    - name: repo-url
+      type: string
+      default: ""
+    - name: repo-revision
+      type: string
+      default: ""
     - name: charts-dir
       default: addons
     - name: registry
@@ -50,6 +56,10 @@ spec:
       taskRef:
         name: git-flux-parsing
       params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
         - name: manifest-file
           value: $(tasks.get-helm-gitrepo.results.manifest-file)
       workspaces:
