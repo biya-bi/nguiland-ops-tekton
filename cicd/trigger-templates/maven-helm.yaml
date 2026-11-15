@@ -8,6 +8,10 @@ spec:
     - name: pipeline-run-name
     - name: namespace
     - name: repository
+    - name: repo-url
+      default: ""
+    - name: repo-revision
+      default: ""
     - name: maven-context-dir
       default: "."
     - name: helm-chart-repo-url
@@ -81,6 +85,10 @@ spec:
         value: $(tt.params.namespace)
       - name: maven-flux-gitrepo-name
         value: $(tt.params.repository)
+      - name: maven-repo-url
+        value: $(tt.params.repo-url)
+      - name: maven-repo-revision
+        value: $(tt.params.repo-revision)
       - name: maven-context-dir
         value: $(tt.params.maven-context-dir)
       - name: helm-chart-repo-url

@@ -11,6 +11,10 @@ spec:
       value: $(body.involvedObject.namespace)
     - name: repository
       value: $(body.involvedObject.name)
+    - name: repo-url
+      value: $(body.metadata.repoUrl)
+    - name: repo-revision
+      value: $(body.metadata.revision)
     - name: chart-context
       value: $(body.metadata.chartContext)
     - name: repo-path

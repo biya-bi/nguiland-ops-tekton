@@ -8,6 +8,10 @@ spec:
     - name: pipeline-run-name
     - name: namespace
     - name: repository
+    - name: repo-url
+      default: ""
+    - name: repo-revision
+      default: ""
     - name: node-context-dir
       default: "."
     - name: node-build-output-dir
@@ -92,6 +96,10 @@ spec:
         value: $(tt.params.namespace)
       - name: node-flux-gitrepo-name
         value: $(tt.params.repository)
+      - name: node-repo-url
+        value: $(tt.params.repo-url)
+      - name: node-repo-revision
+        value: $(tt.params.repo-revision)
       - name: node-context-dir
         value: $(tt.params.node-context-dir)
       - name: node-build-output-dir
