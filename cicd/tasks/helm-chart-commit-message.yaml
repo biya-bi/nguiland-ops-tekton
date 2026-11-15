@@ -4,7 +4,7 @@ metadata:
   name: helm-chart-commit-message
   namespace: cicd
   labels:
-    app.kubernetes.io/version: "0.1"
+    app.kubernetes.io/version: "0.1.0"
   annotations:
     tekton.dev/pipelines.minVersion: "0.12.1"
     tekton.dev/categories: Developer Tools

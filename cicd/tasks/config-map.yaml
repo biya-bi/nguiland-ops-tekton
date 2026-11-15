@@ -4,7 +4,7 @@ metadata:
   name: config-map
   namespace: cicd
   labels:
-    app.kubernetes.io/version: "0.2"
+    app.kubernetes.io/version: "0.1.0"
   annotations:
     tekton.dev/pipelines.minVersion: "0.17.0"
     tekton.dev/categories: Kubernetes
