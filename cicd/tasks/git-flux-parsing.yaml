@@ -75,7 +75,7 @@ spec:
           elif [[ "$revision" == *@sha1:* ]]; then
             supplied_revision="$revision"
             revision="${revision##*@sha1:}"
-            printf "The supplied Flux revision %s identifies commit %s; using the commit ID for checkout\n" "$supplied_revision" "$revision"
+            printf "The supplied Flux revision %s resolves to commit %s, which will be used for checkout\n" "$supplied_revision" "$revision"
           else
             printf "Using the supplied revision %s\n" "$revision"
           fi
