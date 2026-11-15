@@ -8,6 +8,10 @@ spec:
     - name: pipeline-run-name
     - name: namespace
     - name: repository
+    - name: repo-url
+      default: ""
+    - name: repo-revision
+      default: ""
     - name: charts-dir
       default: charts
     - name: registry
@@ -62,6 +66,10 @@ spec:
             value: $(tt.params.namespace)
           - name: repository
             value: $(tt.params.repository)
+          - name: repo-url
+            value: $(tt.params.repo-url)
+          - name: repo-revision
+            value: $(tt.params.repo-revision)
           - name: charts-dir
             value: $(tt.params.charts-dir)
           - name: registry

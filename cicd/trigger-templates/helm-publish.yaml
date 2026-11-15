@@ -8,6 +8,10 @@ spec:
     - name: pipeline-run-name
     - name: namespace
     - name: repository
+    - name: repo-url
+      default: ""
+    - name: repo-revision
+      default: ""
     - name: chart-context
       default: ""
     - name: repo-path
@@ -60,6 +64,10 @@ spec:
             value: $(tt.params.namespace)
           - name: flux-gitrepo-name
             value: $(tt.params.repository)
+          - name: chart-repo-url
+            value: $(tt.params.repo-url)
+          - name: chart-repo-revision
+            value: $(tt.params.repo-revision)
           - name: chart-context
             value: $(tt.params.chart-context)
           - name: repo-path

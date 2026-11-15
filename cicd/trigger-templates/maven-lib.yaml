@@ -8,7 +8,10 @@ spec:
     - name: pipeline-run-name
     - name: namespace
     - name: repository
-    - name: revision
+    - name: repo-url
+      default: ""
+    - name: repo-revision
+      default: ""
     - name: context-dir
       default: "."  
   resourcetemplates:
@@ -62,7 +65,9 @@ spec:
         value: $(tt.params.namespace)
       - name: flux-gitrepo-name
         value: $(tt.params.repository)
+      - name: url
+        value: $(tt.params.repo-url)
       - name: revision
-        value: $(tt.params.revision)
+        value: $(tt.params.repo-revision)
       - name: context-dir
         value: $(tt.params.context-dir)
