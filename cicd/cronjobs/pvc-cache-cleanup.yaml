@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-cache-cleanup
+  namespace: cicd
+spec:
+  # Runs every Sunday at 03:00 AM
+  schedule: "0 3 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleaner
+              image: alpine:3.23
+              env:
+                # Delete files not modified in the last 30 days
+                - name: RETENTION_DAYS
+                  value: "30"
+                # Space-separated list of mount directories to clean
+                - name: TARGET_DIRS
+                  value: "/caches/maven /caches/node"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+                  for dir in $TARGET_DIRS; do
+                    if [ -d "$dir" ]; then
+                      echo "Cleaning files older than ${RETENTION_DAYS} days in $dir..."
+                      find "$dir" -mindepth 1 -type f -mtime +"${RETENTION_DAYS}" -delete
+                      find "$dir" -mindepth 1 -type d -empty -delete
+                    else
+                      echo "Skipping $dir (directory not found)"
+                    fi
+                  done
+                  echo "Cache cleanup complete."
+              volumeMounts:
+                - name: maven-local-repo
+                  mountPath: /caches/maven
+                - name: node-local-repo
+                  mountPath: /caches/node
+          volumes:
+            - name: maven-local-repo
+              persistentVolumeClaim:
+                claimName: maven-local-repo
+            - name: node-local-repo
+              persistentVolumeClaim:
+                claimName: node-local-repo
