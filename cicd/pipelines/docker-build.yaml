@@ -41,13 +41,16 @@ spec:
       type: string
       default: .
       description: The subdirectory from which to launch the Docker build
-    - name: image-push-endpoint
+    - name: registry-host
+      type: string
       default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
-    - name: image-registry-repo
+    - name: registry-repo
+      type: string
       default: docker-local
-    - name: image-path
+    - name: registry-subpath
+      type: string
       default: org.nguiland.infra
-      description: The path (under image-registry-repo) in which the image will be published.
+      description: The path under registry-repo in which images will be published.
     - name: skip-tls
       type: string
       default: "false"
@@ -58,6 +61,24 @@ spec:
     - name: docker-config
     - name: ssh-directory
   tasks:
+    - name: normalize-registry-host
+      taskRef:
+        name: normalize-absolute-path
+      params:
+        - name: path
+          value: $(params.registry-host)
+    - name: normalize-registry-repo
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-repo)
+    - name: normalize-registry-subpath
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-subpath)
     - name: validate-flux
       taskRef:
         name: git-flux-validation
@@ -151,15 +172,18 @@ spec:
     - name: build-docker-contexts
       runAfter:
         - detect-changed-docker-contexts
+        - normalize-registry-host
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         name: build-docker-contexts
       params:
         - name: registry
-          value: $(params.image-push-endpoint)
+          value: $(tasks.normalize-registry-host.results.path)
         - name: repository
-          value: $(params.image-registry-repo)
+          value: $(tasks.normalize-registry-repo.results.path)
         - name: path
-          value: $(params.image-path)
+          value: $(tasks.normalize-registry-subpath.results.path)
         - name: always-build
           value: $(params.always-build)
         - name: changed-dirs
