@@ -22,8 +22,13 @@ spec:
       default: ""
     - name: charts-dir
       default: addons
-    - name: registry
-      default: oci://artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082/docker-local
+    - name: registry-host
+      default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
+    - name: registry-repo
+      default: docker-local
+    - name: registry-subpath
+      default: ""
+      description: Optional path below the registry repository for publishing charts.
     - name: artifactory-readiness-timeout
       default: 10m
     - name: skip-tls
@@ -40,6 +45,24 @@ spec:
     - name: docker-config
     - name: ssh-directory
   tasks:
+    - name: normalize-registry-host
+      taskRef:
+        name: normalize-absolute-path
+      params:
+        - name: path
+          value: $(params.registry-host)
+    - name: normalize-registry-repo
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-repo)
+    - name: normalize-registry-subpath
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-subpath)
     - name: validate-flux
       taskRef:
         name: git-flux-validation
@@ -115,13 +138,18 @@ spec:
     - name: publish-helm-charts
       runAfter:
         - wait-for-deployment-ready
+        - normalize-registry-host
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         name: helm-chart-oci-publish
       params:
         - name: charts-dir
           value: $(params.charts-dir)
         - name: registry
-          value: $(params.registry)
+          value: oci://$(tasks.normalize-registry-host.results.path)/$(tasks.normalize-registry-repo.results.path)
+        - name: repo-path
+          value: $(tasks.normalize-registry-subpath.results.path)
         - name: skip-tls
           value: $(params.skip-tls)
         - name: excluded-charts
