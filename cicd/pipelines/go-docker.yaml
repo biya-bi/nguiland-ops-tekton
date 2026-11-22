@@ -149,6 +149,12 @@ spec:
           value: $(params.flux-gitrepo-name)
         - name: value
           value: $(params.image-registry-repo-path)
+    - name: normalize-image-registry-repo
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.image-registry-repo)
     - name: normalize-image-registry-repo-path
       runAfter:
         - resolve-image-registry-repo-path
@@ -176,6 +182,7 @@ spec:
       runAfter:
         - prepare-dockerfile
         - resolve-docker-image-tag
+        - normalize-image-registry-repo
         - normalize-image-registry-repo-path
       taskRef:
         resolver: git
@@ -192,7 +199,7 @@ spec:
         - name: CONTEXT
           value: $(params.context-dir)
         - name: IMAGE
-          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(tasks.normalize-image-registry-repo-path.results.path):$(tasks.resolve-docker-image-tag.results.image-tag)
+          value: $(params.image-push-endpoint)/$(tasks.normalize-image-registry-repo.results.path)/$(tasks.normalize-image-registry-repo-path.results.path):$(tasks.resolve-docker-image-tag.results.image-tag)
       workspaces:
         - name: source
           workspace: source
