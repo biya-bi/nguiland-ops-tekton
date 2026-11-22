@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: normalize-absolute-path
+  namespace: cicd
+spec:
+  description: >-
+    Normalizes an absolute path by removing trailing forward slashes.
+  params:
+    - name: path
+      type: string
+  results:
+    - name: path
+      description: The normalized absolute path.
+  steps:
+    - name: normalize
+      image: alpine:3.23
+      env:
+        - name: PATH_VALUE
+          value: $(params.path)
+      script: |
+        #!/bin/sh
+        set -eu
+
+        result="$(results.path.path)"
+
+        # Remove trailing forward slashes.
+        path=$(printf '%s' "$PATH_VALUE" | sed 's#/*$##')
+
+        printf '%s' "$path" > "$result"
+        echo "Normalized absolute path: $path"
