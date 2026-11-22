@@ -39,10 +39,18 @@ spec:
     - name: node-build-output-dir
       default: dist
     - name: group-id
-    - name: image-push-endpoint
+    - name: registry-host
+      type: string
       default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
-    - name: image-registry-repo
+    - name: registry-repo
+      type: string
       default: docker-local
+    - name: registry-subpath
+      type: string
+      default: ""
+      description: >-
+        The relative path under registry-repo where the image is published.
+        Defaults to the group-id and package when empty.
     - name: helm-chart-repo-url
       type: string
     - name: helm-chart-repo-revision
@@ -148,6 +156,40 @@ spec:
       params:
         - name: environment
           value: $(params.environment)
+    - name: normalize-registry-host
+      runAfter:
+        - get-env-settings
+      taskRef:
+        name: normalize-absolute-path
+      params:
+        - name: path
+          value: $(params.registry-host)
+    - name: normalize-registry-repo
+      runAfter:
+        - get-env-settings
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-repo)
+    - name: resolve-registry-subpath
+      runAfter:
+        - get-node-package-details
+      taskRef:
+        name: resolve-string
+      params:
+        - name: default
+          value: $(params.group-id)/$(tasks.get-node-package-details.results.package)
+        - name: value
+          value: $(params.registry-subpath)
+    - name: normalize-registry-subpath
+      runAfter:
+        - resolve-registry-subpath
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(tasks.resolve-registry-subpath.results.value)
     - name: build-node-source
       runAfter:
         - get-env-settings
@@ -198,6 +240,9 @@ spec:
     - name: build-and-push-image
       runAfter:
         - create-nginx-dockerfile
+        - normalize-registry-host
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         resolver: git
         params:
@@ -211,7 +256,7 @@ spec:
         - name: CONTEXT
           value: $(params.group-id)/$(tasks.get-node-package-details.results.package)
         - name: IMAGE
-          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package):$(tasks.get-node-package-details.results.version)
+          value: $(tasks.normalize-registry-host.results.path)/$(tasks.normalize-registry-repo.results.path)/$(tasks.normalize-registry-subpath.results.path):$(tasks.get-node-package-details.results.version)
       workspaces:
         - name: source
           workspace: node-local-repo
@@ -255,11 +300,13 @@ spec:
     - name: update-helm-chart
       runAfter:
         - fetch-helm-source
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         name: helm-chart-update
       params:
         - name: repository
-          value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(params.image-registry-repo)/$(params.group-id)/$(tasks.get-node-package-details.results.package)
+          value: $(tasks.get-env-settings.results.image-pull-endpoint)/$(tasks.normalize-registry-repo.results.path)/$(tasks.normalize-registry-subpath.results.path)
         - name: tag
           value: $(tasks.get-node-package-details.results.version)
         - name: chart-dir
