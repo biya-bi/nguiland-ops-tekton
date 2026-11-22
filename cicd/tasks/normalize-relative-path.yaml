@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: normalize-relative-path
+  namespace: cicd
+spec:
+  description: >-
+    Normalizes a relative path by trimming leading and trailing whitespace
+    and removing leading and trailing forward slashes.
+  params:
+    - name: path
+      type: string
+  results:
+    - name: path
+      description: The normalized relative path.
+  steps:
+    - name: normalize
+      image: alpine:3.23
+      env:
+        - name: PATH_VALUE
+          value: $(params.path)
+      script: |
+        #!/bin/sh
+        set -eu
+
+        result="$(results.path.path)"
+
+        # Trim leading and trailing whitespace.
+        path=$(printf '%s' "$PATH_VALUE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+        # Remove leading and trailing forward slashes.
+        path=$(printf '%s' "$path" | sed 's#^/*##;s#/*$##')
+
+        printf '%s' "$path" > "$result"
+        echo "Normalized relative path: $path"

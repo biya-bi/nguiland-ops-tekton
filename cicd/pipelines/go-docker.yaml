@@ -36,6 +36,12 @@ spec:
     - name: image-registry-repo
       type: string
       default: docker-local
+    - name: image-registry-repo-path
+      type: string
+      default: ""
+      description: >-
+        The relative path under image-registry-repo where the image is published.
+        Defaults to flux-gitrepo-name when empty.
     - name: image-tag
       type: string
       default: ""
@@ -135,6 +141,22 @@ spec:
       workspaces:
         - name: source
           workspace: source
+    - name: resolve-image-registry-repo-path
+      taskRef:
+        name: resolve-string
+      params:
+        - name: default
+          value: $(params.flux-gitrepo-name)
+        - name: value
+          value: $(params.image-registry-repo-path)
+    - name: normalize-image-registry-repo-path
+      runAfter:
+        - resolve-image-registry-repo-path
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(tasks.resolve-image-registry-repo-path.results.value)
     - name: prepare-dockerfile
       runAfter:
         - fetch-source
@@ -154,6 +176,7 @@ spec:
       runAfter:
         - prepare-dockerfile
         - resolve-docker-image-tag
+        - normalize-image-registry-repo-path
       taskRef:
         resolver: git
         params:
@@ -169,7 +192,7 @@ spec:
         - name: CONTEXT
           value: $(params.context-dir)
         - name: IMAGE
-          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(params.flux-gitrepo-name):$(tasks.resolve-docker-image-tag.results.image-tag)
+          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(tasks.normalize-image-registry-repo-path.results.path):$(tasks.resolve-docker-image-tag.results.image-tag)
       workspaces:
         - name: source
           workspace: source

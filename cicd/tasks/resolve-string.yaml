@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: resolve-string
+  namespace: cicd
+spec:
+  description: >-
+    Resolves a string from an explicitly provided value or falls back
+    to a default string when the provided value is empty or contains
+    only whitespace.
+  params:
+    - name: default
+      type: string
+    - name: value
+      type: string
+      default: ""
+  results:
+    - name: value
+      description: The resolved string.
+  steps:
+    - name: resolve
+      image: alpine:3.23
+      env:
+        - name: DEFAULT
+          value: $(params.default)
+        - name: VALUE
+          value: $(params.value)
+      script: |
+        #!/bin/sh
+        set -eu
+
+        result="$(results.value.path)"
+
+        # Trim leading and trailing whitespace.
+        value=$(printf '%s' "$VALUE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+        if [ -n "$value" ]; then
+          resolved="$value"
+          echo "Using explicitly provided value: $resolved"
+        else
+          resolved="$DEFAULT"
+          echo "Using default value: $resolved"
+        fi
+
+        printf '%s' "$resolved" > "$result"
