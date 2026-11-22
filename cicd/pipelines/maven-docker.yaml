@@ -29,12 +29,18 @@ spec:
       type: string
       default: .
       description: The directory from which to launch the Maven build.
-    - name: image-push-endpoint
+    - name: registry-host
       type: string
       default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
-    - name: image-registry-repo
+    - name: registry-repo
       type: string
       default: docker-local
+    - name: registry-subpath
+      type: string
+      default: ""
+      description: >-
+        The relative path under registry-repo where the image is published.
+        Defaults to the Maven group-id and artifact-id when empty.
     - name: maven-image
       type: string
       default: gcr.io/cloud-builders/mvn:3.9.1
@@ -56,6 +62,18 @@ spec:
       description: The immutable registry reference of the pushed image.
       value: $(tasks.build-docker-image.results.IMAGE_URL)@$(tasks.build-docker-image.results.IMAGE_DIGEST)
   tasks:
+    - name: normalize-registry-host
+      taskRef:
+        name: normalize-absolute-path
+      params:
+        - name: path
+          value: $(params.registry-host)
+    - name: normalize-registry-repo
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-repo)
     - name: validate-flux
       taskRef:
         name: git-flux-validation
@@ -127,6 +145,24 @@ spec:
       workspaces:
         - name: source
           workspace: source
+    - name: resolve-registry-subpath
+      runAfter:
+        - get-artifact-details
+      taskRef:
+        name: resolve-string
+      params:
+        - name: default
+          value: $(tasks.get-artifact-details.results.group-id)/$(tasks.get-artifact-details.results.artifact-id)
+        - name: value
+          value: $(params.registry-subpath)
+    - name: normalize-registry-subpath
+      runAfter:
+        - resolve-registry-subpath
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(tasks.resolve-registry-subpath.results.path)
     - name: build-source
       runAfter:
         - fetch-source
@@ -154,6 +190,9 @@ spec:
       runAfter:
         - build-source
         - get-artifact-details
+        - normalize-registry-host
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         resolver: git
         params:
@@ -167,7 +206,7 @@ spec:
         - name: CONTEXT
           value: $(params.context-dir)
         - name: IMAGE
-          value: $(params.image-push-endpoint)/$(params.image-registry-repo)/$(tasks.get-artifact-details.results.group-id)/$(tasks.get-artifact-details.results.artifact-id):$(tasks.get-artifact-details.results.version)
+          value: $(tasks.normalize-registry-host.results.path)/$(tasks.normalize-registry-repo.results.path)/$(tasks.normalize-registry-subpath.results.path):$(tasks.get-artifact-details.results.version)
       workspaces:
         - name: source
           workspace: source
