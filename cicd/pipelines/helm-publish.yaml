@@ -1,3 +1,4 @@
+
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
@@ -29,16 +30,18 @@ spec:
     - name: chart-context
       type: string
       default: ""
-    - name: registry
+    - name: registry-host
       type: string
       default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
     - name: registry-repo
       type: string
       default: docker-local
-    - name: repo-path
+    - name: registry-subpath
       type: string
       default: ""
-      description: Optional path below the registry repository for publishing the chart.
+      description: >-
+        The relative path under registry-repo where the chart is published.
+        Defaults to flux-gitrepo-name when empty.
     - name: skip-tls
       type: string
       default: ${SKIP_TLS}
@@ -109,18 +112,49 @@ spec:
           workspace: source
         - name: ssh-directory
           workspace: ssh-directory
+    - name: resolve-registry-subpath
+      taskRef:
+        name: resolve-string
+      params:
+        - name: default
+          value: $(params.flux-gitrepo-name)
+        - name: value
+          value: $(params.registry-subpath)
+    - name: normalize-registry-host
+      taskRef:
+        name: normalize-absolute-path
+      params:
+        - name: path
+          value: $(params.registry-host)
+    - name: normalize-registry-repo
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(params.registry-repo)
+    - name: normalize-registry-subpath
+      runAfter:
+        - resolve-registry-subpath
+      taskRef:
+        name: normalize-relative-path
+      params:
+        - name: path
+          value: $(tasks.resolve-registry-subpath.results.value)
     - name: publish-chart
       runAfter:
         - fetch-source
+        - normalize-registry-host
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         name: helm-chart-oci-publish
       params:
         - name: charts-dir
           value: $(params.charts-dir)/$(params.chart-context)
         - name: registry
-          value: oci://$(params.registry)/$(params.registry-repo)
+          value: oci://$(tasks.normalize-registry-host.results.path)/$(tasks.normalize-registry-repo.results.path)
         - name: repo-path
-          value: $(params.repo-path)
+          value: $(tasks.normalize-registry-subpath.results.path)
         - name: skip-tls
           value: $(params.skip-tls)
       workspaces:

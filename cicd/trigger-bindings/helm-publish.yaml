@@ -17,5 +17,5 @@ spec:
       value: $(body.metadata.revision)
     - name: chart-context
       value: $(body.metadata.chartContext)
-    - name: repo-path
-      value: $(body.metadata.repoPath)
+    - name: registry-subpath
+      value: $(body.metadata.registrySubpath)
