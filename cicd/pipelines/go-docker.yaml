@@ -30,17 +30,17 @@ spec:
       type: string
       default: "."
       description: The directory containing the Go module and optional Dockerfile.
-    - name: image-push-endpoint
+    - name: registry-host
       type: string
       default: artifactory-jcr.${ENVIRONMENT}.svc.cluster.local:8082
-    - name: image-registry-repo
+    - name: registry-repo
       type: string
       default: docker-local
-    - name: image-registry-repo-path
+    - name: registry-subpath
       type: string
       default: ""
       description: >-
-        The relative path under image-registry-repo where the image is published.
+        The relative path under registry-repo where the image is published.
         Defaults to flux-gitrepo-name when empty.
     - name: image-tag
       type: string
@@ -141,34 +141,34 @@ spec:
       workspaces:
         - name: source
           workspace: source
-    - name: resolve-image-registry-repo-path
+    - name: resolve-registry-subpath
       taskRef:
         name: resolve-string
       params:
         - name: default
           value: $(params.flux-gitrepo-name)
         - name: value
-          value: $(params.image-registry-repo-path)
-    - name: normalize-image-push-endpoint
+          value: $(params.registry-subpath)
+    - name: normalize-registry-host
       taskRef:
         name: normalize-absolute-path
       params:
         - name: path
-          value: $(params.image-push-endpoint)
-    - name: normalize-image-registry-repo
+          value: $(params.registry-host)
+    - name: normalize-registry-repo
       taskRef:
         name: normalize-relative-path
       params:
         - name: path
-          value: $(params.image-registry-repo)
-    - name: normalize-image-registry-repo-path
+          value: $(params.registry-repo)
+    - name: normalize-registry-subpath
       runAfter:
-        - resolve-image-registry-repo-path
+        - resolve-registry-subpath
       taskRef:
         name: normalize-relative-path
       params:
         - name: path
-          value: $(tasks.resolve-image-registry-repo-path.results.value)
+          value: $(tasks.resolve-registry-subpath.results.value)
     - name: prepare-dockerfile
       runAfter:
         - fetch-source
@@ -188,9 +188,9 @@ spec:
       runAfter:
         - prepare-dockerfile
         - resolve-docker-image-tag
-        - normalize-image-push-endpoint
-        - normalize-image-registry-repo
-        - normalize-image-registry-repo-path
+        - normalize-registry-host
+        - normalize-registry-repo
+        - normalize-registry-subpath
       taskRef:
         resolver: git
         params:
@@ -206,7 +206,7 @@ spec:
         - name: CONTEXT
           value: $(params.context-dir)
         - name: IMAGE
-          value: $(tasks.normalize-image-push-endpoint.results.path)/$(tasks.normalize-image-registry-repo.results.path)/$(tasks.normalize-image-registry-repo-path.results.path):$(tasks.resolve-docker-image-tag.results.image-tag)
+          value: $(tasks.normalize-registry-host.results.path)/$(tasks.normalize-registry-repo.results.path)/$(tasks.normalize-registry-subpath.results.path):$(tasks.resolve-docker-image-tag.results.image-tag)
       workspaces:
         - name: source
           workspace: source

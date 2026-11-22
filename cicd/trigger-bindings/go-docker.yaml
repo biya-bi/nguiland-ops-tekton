@@ -1,3 +1,4 @@
+
 apiVersion: triggers.tekton.dev/v1beta1
 kind: TriggerBinding
 metadata:
@@ -17,5 +18,5 @@ spec:
       value: $(body.metadata.revision)
     - name: context-dir
       value: $(body.metadata.contextDir)
-    - name: image-registry-repo-path
-      value: $(body.metadata.imageRegistryRepoPath)
+    - name: registry-subpath
+      value: $(body.metadata.registrySubPath)

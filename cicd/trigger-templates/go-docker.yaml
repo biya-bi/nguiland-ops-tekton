@@ -14,7 +14,7 @@ spec:
       default: ""
     - name: context-dir
       default: "."
-    - name: image-registry-repo-path
+    - name: registry-subpath
       default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1
@@ -70,5 +70,5 @@ spec:
             value: $(tt.params.repo-revision)
           - name: context-dir
             value: $(tt.params.context-dir)
-          - name: image-registry-repo-path
-            value: $(tt.params.image-registry-repo-path)
+          - name: registry-subpath
+            value: $(tt.params.registry-subpath)
